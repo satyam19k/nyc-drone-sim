@@ -1,4 +1,4 @@
-"""Gate for Stage 4: drone camera paths. Geometry only."""
+"""Checks for stage 4: drone camera paths. Geometry only."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ import numpy as np
 from pxr import Usd, UsdGeom
 from shapely.geometry import shape
 
-from _gate import REPO_ROOT, Gate
+from _checks import REPO_ROOT, CheckList
 
 from nyc_drone_sim.common import altitude_m, load_config, scene_dir, slugify
 from nyc_drone_sim.paths import path_file
@@ -68,7 +68,7 @@ def main():
     cfg = load_config(a.config)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
-    g = Gate(4, slug)
+    g = CheckList(4, slug)
     R = float(cfg["scene_radius_m"])
     alts = [altitude_m(x) for x in cfg["altitudes_ft"]]
     paths = {int(x): json.loads(path_file(sdir, x).read_text()) for x in cfg["altitudes_ft"]}

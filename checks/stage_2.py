@@ -1,4 +1,4 @@
-"""Gate for Stage 2: open data to USD. Values under test are read back from scene.usdc."""
+"""Checks for stage 2: open data to USD. Values under test are read back from scene.usdc."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ import shapely
 from pxr import Usd, UsdGeom, UsdSemantics, UsdValidation
 from shapely.geometry import shape
 
-from _gate import REPO_ROOT, Gate
+from _checks import REPO_ROOT, CheckList
 
 from nyc_drone_sim.common import load_config, scene_dir, slugify
 
@@ -85,7 +85,7 @@ def main():
     cfg = load_config(a.config)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
-    g = Gate(2, slug)
+    g = CheckList(2, slug)
     R = float(cfg["scene_radius_m"])
 
     usd_path = sdir / "scene.usdc"

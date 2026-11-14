@@ -61,3 +61,23 @@ paths:
   min_target_visible_share: 0.8
   taller_share_radius_m: 300
   min_surface_distance_m: 10
+
+# Stage 3: probe
+probe:
+  ground_free_radius_m: 30
+  ground_search_step_m: 2
+  roof_inset_m: 5
+  roof_height_range_m: [10, 100]
+  roof_camera_above_m: 50
+  rt_subframes: 16
+  clipping_range_m: [0.1, 10000]
+
+# Stage 5: render
+render:
+  rt_subframes: 4
+  warmup_frames: 3
+  clipping_range_m: [0.1, 10000]
+  use_instance_id: true
+  canny_threshold_low: 10
+  canny_threshold_high: 100
+  evidence_frames: [0, 31, 62, 92]

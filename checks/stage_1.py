@@ -1,4 +1,4 @@
-"""Gate for Stage 1: location to open data."""
+"""Checks for stage 1: location to open data."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from shapely.geometry import Point, shape
 
-from _gate import REPO_ROOT, Gate
+from _checks import REPO_ROOT, CheckList
 
 from nyc_drone_sim import geo
 from nyc_drone_sim.common import FT_TO_M, load_config, scene_dir, slugify
@@ -26,7 +26,7 @@ def main():
     cfg = load_config(a.config)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
-    g = Gate(1, slug)
+    g = CheckList(1, slug)
     R = float(cfg["scene_radius_m"])
 
     feats = json.loads((sdir / "buildings.geojson").read_text())["features"]

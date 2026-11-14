@@ -1,4 +1,4 @@
-"""Tiny gate harness shared by the stage checks."""
+"""Small pass/fail harness shared by the stage checks."""
 from __future__ import annotations
 
 import json
@@ -10,7 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 
-class Gate:
+class CheckList:
     def __init__(self, stage: int, location: str):
         self.stage, self.location = stage, location
         self.results: list[dict] = []

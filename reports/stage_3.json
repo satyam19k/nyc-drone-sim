@@ -1,0 +1,43 @@
+{
+ "stage": 3,
+ "location": "120-broadway",
+ "passed": true,
+ "utc": "2026-11-14T16:29:35+00:00",
+ "checks": [
+  {
+   "id": "G3.1",
+   "status": "PASS",
+   "detail": "ground_150ft: centre depth 45.7200 m, expected 45.72 m +/- 0.25 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "G3.2",
+   "status": "PASS",
+   "detail": "ground_500ft: centre depth 152.4000 m, expected 152.40 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "G3.3",
+   "status": "PASS",
+   "detail": "roof: centre depth 50.0000 m, expected 50.00 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "G3.4",
+   "status": "PASS",
+   "detail": "ground_150ft: centre 'ground' (expected 'ground'), unlabelled 0.00%, shares {'building': 0.0413, 'ground': 0.9587}; ground_500ft: centre 'ground' (expected 'ground'), unlabelled 0.00%, shares {'building': 0.5739, 'ground': 0.4261}; roof: centre 'building' (expected 'building'), unlabelled 0.00%, shares {'building': 0.8768, 'ground': 0.1232}"
+  },
+  {
+   "id": "G3.5",
+   "status": "PASS",
+   "detail": "ground_150ft: mean 146.9, clipped 0.00%; ground_500ft: mean 149.1, clipped 0.00%; roof: mean 156.2, clipped 0.00%"
+  },
+  {
+   "id": "G3.6",
+   "status": "PASS",
+   "detail": "peak 2858 MiB of 46068 MiB (6.2%) on NVIDIA L40S; scene load 2.1 s"
+  },
+  {
+   "id": "G3.7",
+   "status": "PASS",
+   "detail": "evidence/stage_3_120-broadway.png (376741 bytes)"
+  }
+ ]
+}
