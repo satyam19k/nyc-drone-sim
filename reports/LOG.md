@@ -65,3 +65,58 @@ $ env_cpu/bin/python checks/stage_4.py
 stage 4: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/stage_4.json
 exit=0
 ```
+
+## Stage 3 — 2026-11-14
+
+Notes:
+- Ran on NVIDIA L40S (node gl026), Isaac Sim 6.2.0.0, omni.replicator.core 1.13.38. Depth annotator `distance_to_image_plane`, documented in the installed package as float32 metres.
+- First run (job 23121725): checks FAILED. The first captured frame (ground_150ft) came back with zero-size RGB, depth and segmentation arrays; the other two probes read 152.4000 m and 50.0000 m. Fix: one discarded warm-up frame before the probes, plus an error if any annotator returns no data. No threshold changed.
+- Second run (job 23122654): checks passed.
+
+```
+$ sbatch --account=torch_pr_54_general --export=ALL,LOCATION="120 Broadway" slurm/probe.sbatch   # job 23122654
+probe ground_150ft rendered
+probe ground_500ft rendered
+probe roof rendered
+probe done: load 2.1 s, peak VRAM 2858 / 46068 MiB on NVIDIA L40S
+$ env_cpu/bin/python checks/stage_3.py
+[PASS] G3.1: ground_150ft: centre depth 45.7200 m, expected 45.72 m +/- 0.25 (annotator distance_to_image_plane, stage metersPerUnit 1.0)
+[PASS] G3.2: ground_500ft: centre depth 152.4000 m, expected 152.40 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)
+[PASS] G3.3: roof: centre depth 50.0000 m, expected 50.00 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)
+[PASS] G3.4: ground_150ft: centre 'ground' (expected 'ground'), unlabelled 0.00%, shares {'building': 0.0413, 'ground': 0.9587}; ground_500ft: centre 'ground' (expected 'ground'), unlabelled 0.00%, shares {'building': 0.5739, 'ground': 0.4261}; roof: centre 'building' (expected 'building'), unlabelled 0.00%, shares {'building': 0.8768, 'ground': 0.1232}
+[PASS] G3.5: ground_150ft: mean 146.9, clipped 0.00%; ground_500ft: mean 149.1, clipped 0.00%; roof: mean 156.2, clipped 0.00%
+[PASS] G3.6: peak 2858 MiB of 46068 MiB (6.2%) on NVIDIA L40S; scene load 2.1 s
+[PASS] G3.7: evidence/stage_3_120-broadway.png (376741 bytes)
+stage 3: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/stage_3.json
+exit=0
+```
+
+## Stage 5 — 2026-11-14
+
+Notes:
+- Rendered on NVIDIA L40S, job 23126414, run id run_001, both altitudes on the first submission.
+- The brief points at standalone_examples/replicator/cosmos_writer_warehouse.py; the pip install of Isaac Sim 6.2.0 does not ship it. The capture loop follows the installed CosmosWriter source (omni.replicator.core 1.13.38, writers_default/cosmos.py) and its test in tests/test_writers.py.
+- The writer encoded all MP4s itself at 16 fps (frame rate taken from the stage timeline); ffprobe confirmed and nothing was re-encoded. ffmpeg/ffprobe come from the static-ffmpeg package in env_cpu because the cluster has none.
+- G5.3 WARN: at 500 ft no frame has ground at the image centre (the centre is on buildings throughout), so the altitude identity is only exercised by the 150 ft clip (24 frames, 0.000% error).
+- G5.6 WARN: at 500 ft buildings cover more than 95% of the frame in 22 of 93 frames. Treated as flag-for-review, not a failure, following the wording of G5.6.
+- G5.7 compares the clip frame 0 with a second render of the same pose taken during warm-up.
+
+```
+$ sbatch --account=torch_pr_54_general --export=ALL,LOCATION="120 Broadway",RUN_ID=run_001 slurm/render.sbatch   # job 23126414
+render done: 93 frames in 31.1 s -> /scratch/sk12075/nyc-drone-sim/runs/run_001/120-broadway/150
+render done: 93 frames in 30.6 s -> /scratch/sk12075/nyc-drone-sim/runs/run_001/120-broadway/500
+$ env_cpu/bin/python -m nyc_drone_sim.postrender --location "120 Broadway" --run run_001
+$ env_cpu/bin/python checks/stage_5.py --run run_001
+[PASS] G5.1: 150 ft: 5 folders x 93 PNGs at 1280x720; 5 MP4s at 93 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 93 PNGs at 1280x720; 5 MP4s at 93 frames, 16 fps (re-encoded: none)
+[PASS] G5.2: 150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 93 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00001 deg over 93 frames
+[WARN] G5.3: 150 ft: 24 frames with ground at centre, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: no frame has ground at the image centre, so this clip gives nothing to test
+[PASS] G5.4: 150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0
+[PASS] G5.5: 150 ft: frame-to-frame mean abs difference min 2.038, mean 3.889, max 5.437 (4-sigma limit 7.608); 500 ft: frame-to-frame mean abs difference min 2.066, mean 2.658, max 3.620 (4-sigma limit 3.921)
+[WARN] G5.6: 150 ft: building share per frame min 72.0%, mean 77.3%, max 84.2%; 0 frames outside 5-95%; 500 ft: building share per frame min 88.9%, mean 91.8%, max 97.9%; 22 frames outside 5-95%; flagged for review
+[PASS] G5.7: 150 ft: PSNR of second frame-0 render against the clip's frame 0 = 42.34 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.78 dB
+[PASS] G5.8: evidence/stage_5_120-broadway_150.png (264129 bytes); evidence/stage_5_120-broadway_500.png (380280 bytes)
+RGB video 150 ft: /scratch/sk12075/nyc-drone-sim/runs/run_001/120-broadway/150/clip_0000/rgb.mp4
+RGB video 500 ft: /scratch/sk12075/nyc-drone-sim/runs/run_001/120-broadway/500/clip_0000/rgb.mp4
+stage 5: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/stage_5.json
+exit=0
+```

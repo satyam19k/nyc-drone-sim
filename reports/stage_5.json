@@ -1,0 +1,48 @@
+{
+ "stage": 5,
+ "location": "120-broadway",
+ "passed": true,
+ "utc": "2026-11-14T16:30:13+00:00",
+ "checks": [
+  {
+   "id": "G5.1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 93 PNGs at 1280x720; 5 MP4s at 93 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 93 PNGs at 1280x720; 5 MP4s at 93 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "G5.2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 93 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00001 deg over 93 frames"
+  },
+  {
+   "id": "G5.3",
+   "status": "WARN",
+   "detail": "150 ft: 24 frames with ground at centre, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: no frame has ground at the image centre, so this clip gives nothing to test"
+  },
+  {
+   "id": "G5.4",
+   "status": "PASS",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0"
+  },
+  {
+   "id": "G5.5",
+   "status": "PASS",
+   "detail": "150 ft: frame-to-frame mean abs difference min 2.038, mean 3.889, max 5.437 (4-sigma limit 7.608); 500 ft: frame-to-frame mean abs difference min 2.066, mean 2.658, max 3.620 (4-sigma limit 3.921)"
+  },
+  {
+   "id": "G5.6",
+   "status": "WARN",
+   "detail": "150 ft: building share per frame min 72.0%, mean 77.3%, max 84.2%; 0 frames outside 5-95%; 500 ft: building share per frame min 88.9%, mean 91.8%, max 97.9%; 22 frames outside 5-95%; flagged for review"
+  },
+  {
+   "id": "G5.7",
+   "status": "PASS",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 42.34 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.78 dB"
+  },
+  {
+   "id": "G5.8",
+   "status": "PASS",
+   "detail": "evidence/stage_5_120-broadway_150.png (264129 bytes); evidence/stage_5_120-broadway_500.png (380280 bytes)"
+  }
+ ]
+}
