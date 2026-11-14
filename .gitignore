@@ -15,3 +15,5 @@ env_sim/
 env_gen/
 slurm-*.out
 *.log
+env_cpu/
+reports/isaacsim_install.txt

@@ -1,0 +1,48 @@
+{
+ "stage": 1,
+ "location": "120-broadway",
+ "passed": true,
+ "utc": "2026-11-14T05:54:30+00:00",
+ "checks": [
+  {
+   "id": "G1.1",
+   "status": "PASS",
+   "detail": "bin=1001026 lon=-74.010542 lat=40.708233; footprint(s) with that bin: 1, nearest 0.00 m from point"
+  },
+  {
+   "id": "G1.2",
+   "status": "PASS",
+   "detail": "rows fetched 822, server count(*) 822"
+  },
+  {
+   "id": "G1.3",
+   "status": "PASS",
+   "detail": "missing-field rows {'height_roof': 0, 'ground_elevation': 0, 'feature_code': 0, 'bin': 0, 'doitt_id': 0, 'construction_year': 0, 'last_status_type': 0, 'base_bbl': 0, 'mappluto_bbl': 0, 'geom_source': 0}; null geometries 0; valid after repair 100.0000% (0 repaired); all 753 output geometries valid: True"
+  },
+  {
+   "id": "G1.4",
+   "status": "PASS",
+   "detail": "max |height_m - 0.3048*height_ft_raw| = 0.00e+00 over 748 measured rows; 5 imputed rows have no raw height and are >= floor: True; median 26.39 m, max 429.27 m"
+  },
+  {
+   "id": "G1.5",
+   "status": "PASS",
+   "detail": "farthest vertex 935.6 m, limit 950 m"
+  },
+  {
+   "id": "G1.6",
+   "status": "PASS",
+   "detail": "imputed share 0.66% (5 of 753)"
+  },
+  {
+   "id": "G1.7",
+   "status": "PASS",
+   "detail": "offline rerun from cache byte-identical: True (545018 bytes)"
+  },
+  {
+   "id": "G1.8",
+   "status": "PASS",
+   "detail": "evidence/stage_1_120-broadway.png (433696 bytes)"
+  }
+ ]
+}

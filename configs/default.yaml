@@ -1,0 +1,50 @@
+seed: 2026
+scene_radius_m: 800
+altitudes_ft: [150, 500]
+camera:
+  focal_length_mm: 24
+  horizontal_aperture_mm: 36.0
+  vertical_aperture_mm: 20.25
+  resolution: [1280, 720]
+  pitch_deg: -45
+clip:
+  frames: 93
+  fps: 16
+speed_mps:
+  150: 8
+  500: 12
+clearance_m:
+  lateral: 15
+  vertical: 10
+imputation:
+  neighbour_radius_m: 100
+  floor_m: 3.0
+
+# Stage 1: open data
+data:
+  geosearch_url: https://geosearch.planninglabs.nyc/v2/search
+  buildings_url: https://data.cityofnewyork.us/resource/5zhs-2jue
+  bbox_margin_m: 50
+  page_size: 5000
+  drop_feature_codes: [1003]
+  keep_feature_codes: [2100, 5100, 5110, 2110, 1006, 1000, 1001, 1002, 1004, 1005]
+  http_timeout_s: 120
+  cache_dir: data/cache
+  coord_decimals: 4
+
+# Output roots (relative to repo root)
+output:
+  scenes_dir: runs/scenes
+  runs_dir: runs
+
+# Stage 2: USD scene
+scene:
+  ground_side_factor: 4
+  sun_intensity: 3000
+  sun_angle_deg: 0.53
+  sun_elevation_deg: 55
+  sun_azimuth_deg: 135
+  dome_intensity: 800
+  ground_color: [0.35, 0.35, 0.33]
+  building_color_base: [0.62, 0.60, 0.57]
+  building_color_jitter: 0.12
