@@ -48,3 +48,16 @@ scene:
   ground_color: [0.35, 0.35, 0.33]
   building_color_base: [0.62, 0.60, 0.57]
   building_color_jitter: 0.12
+
+# Stage 4: camera paths
+paths:
+  grid_res_m: 2.0
+  grid_margin_m: 150
+  flyover_heading_step_deg: 15
+  orbit_radii_m: [60, 100, 150]
+  orbit_angle_step_deg: 15
+  hover_pan_sweep_deg: 90
+  max_yaw_rate_deg_s: 20
+  min_target_visible_share: 0.8
+  taller_share_radius_m: 300
+  min_surface_distance_m: 10

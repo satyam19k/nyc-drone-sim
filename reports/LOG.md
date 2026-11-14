@@ -42,3 +42,26 @@ $ env_cpu/bin/python checks/stage_2.py
 stage 2: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/stage_2.json
 exit=0
 ```
+
+## Stage 4 — 2026-11-14
+
+Notes:
+- 150 ft at 120 Broadway: none of the 168 flyover/orbit candidates clears the 15 m lateral margin (108 of 181 buildings within 300 m are taller than the camera), so the planner used the `hover_pan` fallback. G4.3 speed and G4.6 target-in-view apply to moving paths; for hover_pan the check confirms the camera is stationary and reports the target share anyway.
+- 500 ft: flyover, heading 0 deg (east), 45 of 168 candidates survive.
+- G4.2 measures 3D point-to-triangle distance against every building triangle in scene.usdc.
+
+```
+$ env_cpu/bin/python -m pytest -q tests
+3 passed in 4.58s
+$ env_cpu/bin/python checks/stage_4.py
+[PASS] G4.1: 150 ft: max |z - 45.72| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg; 500 ft: max |z - 152.40| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg
+[PASS] G4.2: from 38560 USD triangles; 150 ft: nearest building surface 15.78 m; 500 ft: nearest building surface 21.06 m; required >= 10 m
+[PASS] G4.3: 150 ft: stationary (hover_pan), max yaw rate 15.65 deg/s; 500 ft: speed 12.0000-12.0000 m/s (config 12), max yaw rate 0.00 deg/s
+[PASS] G4.4: 150 ft: 93 frames at 16.000 fps, 5.8125 s; 500 ft: 93 frames at 16.000 fps, 5.8125 s
+[PASS] G4.5: 150 ft: farthest corner ground hit 144.2 m from origin; 500 ft: farthest corner ground hit 379.7 m from origin; limit 800 m
+[PASS] G4.6: 150 ft (hover_pan): not applicable; target in image in 100.0% of frames; 500 ft (flyover): target in image in 100.0% of frames
+[PASS] G4.7: 150 ft: 73.740 x 45.747 deg; 500 ft: 73.740 x 45.747 deg
+[PASS] G4.8: evidence/stage_4_120-broadway.png (580118 bytes)
+stage 4: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/stage_4.json
+exit=0
+```
