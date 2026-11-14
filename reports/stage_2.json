@@ -1,0 +1,53 @@
+{
+ "stage": 2,
+ "location": "120-broadway",
+ "passed": true,
+ "utc": "2026-11-14T05:58:02+00:00",
+ "checks": [
+  {
+   "id": "G2.1",
+   "status": "PASS",
+   "detail": "metersPerUnit=1.0, upAxis=Z"
+  },
+  {
+   "id": "G2.2",
+   "status": "PASS",
+   "detail": "UsdValidation (successor of UsdUtils.ComplianceChecker, which usd-core 0.26.11 no longer ships): 30 validators, 0 errors, 0 warnings"
+  },
+  {
+   "id": "G2.3",
+   "status": "PASS",
+   "detail": "USD building meshes 753, Stage 1 kept 753"
+  },
+  {
+   "id": "G2.4",
+   "status": "PASS",
+   "detail": "over 753 meshes: max |zmin - 0| = 0.00e+00 m, max |zmax - height_m| = 1.45e-05 m"
+  },
+  {
+   "id": "G2.5",
+   "status": "PASS",
+   "detail": "50 random meshes (seed 2026): worst relative volume error 3.92e-06 (B_559242), negative volumes 0; over all 753 meshes worst 7.27e-06"
+  },
+  {
+   "id": "G2.6",
+   "status": "PASS",
+   "detail": "top-down IoU at 1 m/px = 1.00000 (USD 743354 px, footprints 743354 px)"
+  },
+  {
+   "id": "G2.7",
+   "status": "PASS",
+   "detail": "class labels resolved per mesh: {'building': 753, 'ground': 1}; meshes without exactly one label: 0 []"
+  },
+  {
+   "id": "G2.8",
+   "status": "PASS",
+   "detail": "38562 triangles, scene.usdc 1.40 MB"
+  },
+  {
+   "id": "G2.9",
+   "status": "PASS",
+   "detail": "evidence/stage_2_120-broadway.png (500822 bytes)"
+  }
+ ]
+}

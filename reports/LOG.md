@@ -20,3 +20,25 @@ $ env_cpu/bin/python checks/stage_1.py
 stage 1: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/stage_1.json
 exit=0
 ```
+
+## Stage 2 — 2026-11-14
+
+Notes:
+- G2.2: the installed usd-core 26.11 has no `UsdUtils.ComplianceChecker`. The check runs every validator from its successor, `UsdValidation` (30 validators), and fails on any Error.
+- G2.5 and G2.6 read meshes from scene.usdc and use the Stage 1 footprints only as the reference to compare against.
+- `UsdSemantics` is present, so labels are authored in Stage 2.
+
+```
+$ env_cpu/bin/python checks/stage_2.py
+[PASS] G2.1: metersPerUnit=1.0, upAxis=Z
+[PASS] G2.2: UsdValidation (successor of UsdUtils.ComplianceChecker, which usd-core 0.26.11 no longer ships): 30 validators, 0 errors, 0 warnings
+[PASS] G2.3: USD building meshes 753, Stage 1 kept 753
+[PASS] G2.4: over 753 meshes: max |zmin - 0| = 0.00e+00 m, max |zmax - height_m| = 1.45e-05 m
+[PASS] G2.5: 50 random meshes (seed 2026): worst relative volume error 3.92e-06 (B_559242), negative volumes 0; over all 753 meshes worst 7.27e-06
+[PASS] G2.6: top-down IoU at 1 m/px = 1.00000 (USD 743354 px, footprints 743354 px)
+[PASS] G2.7: class labels resolved per mesh: {'building': 753, 'ground': 1}; meshes without exactly one label: 0 []
+[PASS] G2.8: 38562 triangles, scene.usdc 1.40 MB
+[PASS] G2.9: evidence/stage_2_120-broadway.png (500822 bytes)
+stage 2: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/stage_2.json
+exit=0
+```
