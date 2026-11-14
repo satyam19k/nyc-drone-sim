@@ -1,0 +1,17 @@
+runs/
+data/cache/
+*.mp4
+*.usd
+*.usdc
+*.usda
+checkpoints/
+*.safetensors
+*.pt
+*.ckpt
+__pycache__/
+*.pyc
+*.egg-info/
+env_sim/
+env_gen/
+slurm-*.out
+*.log
