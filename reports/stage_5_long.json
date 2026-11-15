@@ -1,0 +1,54 @@
+{
+ "stage": 5,
+ "location": "rockefeller-park-transect",
+ "passed": false,
+ "variant": "long",
+ "utc": "2026-11-15T20:39:23+00:00",
+ "checks": [
+  {
+   "id": "G5.1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 480 PNGs at 1280x720; 5 MP4s at 480 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 480 PNGs at 1280x720; 5 MP4s at 480 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "G5.2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 480 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00001 deg over 480 frames"
+  },
+  {
+   "id": "G5.3",
+   "status": "FAIL",
+   "detail": "150 ft: 135 frames with ground at centre, centre depth 64.56 m (expected 64.7), worst altitude error 11.390%; 500 ft: 437 frames with ground at centre, centre depth 215.47 m (expected 215.5), worst altitude error 4.059%"
+  },
+  {
+   "id": "G5.4",
+   "status": "FAIL",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 1"
+  },
+  {
+   "id": "G5.5",
+   "status": "PASS",
+   "detail": "150 ft: frame-to-frame mean abs difference min 0.232, mean 6.354, max 22.298 (4-sigma limit 37.310); 500 ft: frame-to-frame mean abs difference min 0.342, mean 4.876, max 13.163 (4-sigma limit 21.318)"
+  },
+  {
+   "id": "G5.6",
+   "status": "WARN",
+   "detail": "150 ft: building share per frame min 0.0%, mean 1.7%, max 15.4%; 409 frames outside 5-95%; 150 ft mean share of other classes: boardwalk 2.34%, furniture 0.02%, ground 0.03%, lawn 14.40%, path 4.51%, person 0.08%, road 0.66%, road_marking 0.03%, sidewalk 2.76%, vegetation 5.85%, vehicle 0.09%; 500 ft: building share per frame min 0.0%, mean 12.5%, max 43.8%; 195 frames outside 5-95%; 500 ft mean share of other classes: boardwalk 1.67%, furniture 0.03%, ground 0.63%, lawn 7.42%, median 0.07%, path 2.51%, person 0.06%, pier 0.36%, plaza 0.02%, road 1.22%, road_marking 0.06%, sidewalk 2.75%, vegetation 3.50%, vehicle 0.24%, water 67.86%; flagged for review"
+  },
+  {
+   "id": "G5.7",
+   "status": "PASS",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 50.53 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 49.09 dB"
+  },
+  {
+   "id": "G5.8",
+   "status": "PASS",
+   "detail": "evidence/stage_5_rockefeller-park-transect_150_long.png (628256 bytes); evidence/stage_5_rockefeller-park-transect_500_long.png (681676 bytes)"
+  },
+  {
+   "id": "G5.9",
+   "status": "FAIL",
+   "detail": "150 ft: colourised depth grey levels p1 74 to p99 128 (range 54, need >= 64); 500 ft: colourised depth grey levels p1 7 to p99 61 (range 54, need >= 64)"
+  }
+ ]
+}

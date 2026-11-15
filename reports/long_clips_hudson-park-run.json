@@ -1,0 +1,192 @@
+{
+ "place": "hudson-park-run",
+ "run": "run_006",
+ "altitudes": {
+  "150": {
+   "video": "/scratch/sk12075/nyc-drone-sim/runs/run_006/hudson-park-run/150/clip_0000/rgb.mp4",
+   "frames": 480,
+   "predicted": {
+    "water": {
+     "mean": 0.172,
+     "max": 0.3411
+    },
+    "park": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "road": {
+     "mean": 0.1601,
+     "max": 0.193
+    },
+    "walkway": {
+     "mean": 0.3897,
+     "max": 0.4814
+    },
+    "building": {
+     "mean": 0.0558,
+     "max": 0.1156
+    },
+    "other": {
+     "mean": 0.2223,
+     "max": 0.2671
+    },
+    "not_at_grade": {
+     "mean": 0.0,
+     "max": 0.0
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.1856,
+     "max": 0.4228
+    },
+    "park": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "road": {
+     "mean": 0.0901,
+     "max": 0.1015
+    },
+    "walkway": {
+     "mean": 0.3783,
+     "max": 0.5742
+    },
+    "building": {
+     "mean": 0.0767,
+     "max": 0.2424
+    },
+    "tree": {
+     "mean": 0.0149,
+     "max": 0.0248
+    },
+    "vehicle": {
+     "mean": 0.0066,
+     "max": 0.0137
+    },
+    "person": {
+     "mean": 0.0038,
+     "max": 0.0056
+    },
+    "furniture": {
+     "mean": 0.0013,
+     "max": 0.002
+    },
+    "other": {
+     "mean": 0.2427,
+     "max": 0.3138
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "road",
+    "building"
+   ],
+   "road_marking_stability": {
+    "frames": 480,
+    "marking_pixels_min": 482,
+    "marking_pixels_max": 4949,
+    "median_jump": 0.0056,
+    "p99_jump": 0.0354,
+    "max_jump": 0.0535,
+    "frame_of_max": 415,
+    "frames_over_5pct": 2
+   },
+   "timeline": "evidence/timeline_hudson-park-run_150.png",
+   "sheet": "evidence/sheet8_hudson-park-run_150.png"
+  },
+  "500": {
+   "video": "/scratch/sk12075/nyc-drone-sim/runs/run_006/hudson-park-run/500/clip_0000/rgb.mp4",
+   "frames": 480,
+   "predicted": {
+    "water": {
+     "mean": 0.3157,
+     "max": 0.3699
+    },
+    "park": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "road": {
+     "mean": 0.1597,
+     "max": 0.1845
+    },
+    "walkway": {
+     "mean": 0.1856,
+     "max": 0.2564
+    },
+    "building": {
+     "mean": 0.2499,
+     "max": 0.2842
+    },
+    "other": {
+     "mean": 0.0891,
+     "max": 0.0972
+    },
+    "not_at_grade": {
+     "mean": 0.0,
+     "max": 0.0003
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.3026,
+     "max": 0.3973
+    },
+    "park": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "road": {
+     "mean": 0.0893,
+     "max": 0.1068
+    },
+    "walkway": {
+     "mean": 0.1523,
+     "max": 0.2539
+    },
+    "building": {
+     "mean": 0.3279,
+     "max": 0.3592
+    },
+    "tree": {
+     "mean": 0.0131,
+     "max": 0.0193
+    },
+    "vehicle": {
+     "mean": 0.0086,
+     "max": 0.0113
+    },
+    "person": {
+     "mean": 0.0013,
+     "max": 0.002
+    },
+    "furniture": {
+     "mean": 0.001,
+     "max": 0.0012
+    },
+    "other": {
+     "mean": 0.1039,
+     "max": 0.1331
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "road",
+    "building"
+   ],
+   "road_marking_stability": {
+    "frames": 480,
+    "marking_pixels_min": 1379,
+    "marking_pixels_max": 4198,
+    "median_jump": 0.0047,
+    "p99_jump": 0.0239,
+    "max_jump": 0.0385,
+    "frame_of_max": 63,
+    "frames_over_5pct": 0
+   },
+   "timeline": "evidence/timeline_hudson-park-run_500.png",
+   "sheet": "evidence/sheet8_hudson-park-run_500.png"
+  }
+ }
+}

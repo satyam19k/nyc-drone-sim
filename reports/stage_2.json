@@ -1,8 +1,8 @@
 {
  "stage": 2,
- "location": "120-broadway",
+ "location": "battery-shoreline",
  "passed": true,
- "utc": "2026-11-14T16:29:17+00:00",
+ "utc": "2026-11-15T20:53:08+00:00",
  "checks": [
   {
    "id": "G2.1",
@@ -17,37 +17,37 @@
   {
    "id": "G2.3",
    "status": "PASS",
-   "detail": "USD building meshes 753, Stage 1 kept 753"
+   "detail": "USD building meshes 252, Stage 1 kept 252"
   },
   {
    "id": "G2.4",
    "status": "PASS",
-   "detail": "over 753 meshes: max |zmin - 0| = 0.00e+00 m, max |zmax - height_m| = 1.45e-05 m"
+   "detail": "over 252 meshes: max |zmin - 0| = 0.00e+00 m, max |zmax - height_m| = 7.62e-06 m"
   },
   {
    "id": "G2.5",
    "status": "PASS",
-   "detail": "50 random meshes (seed 2026): worst relative volume error 3.92e-06 (B_559242), negative volumes 0; over all 753 meshes worst 7.27e-06"
+   "detail": "50 random meshes (seed 2026): worst relative volume error 2.36e-06 (B_851089), negative volumes 0; over all 252 meshes worst 4.63e-06"
   },
   {
    "id": "G2.6",
    "status": "PASS",
-   "detail": "top-down IoU at 1 m/px = 1.00000 (USD 743354 px, footprints 743354 px)"
+   "detail": "top-down IoU at 1 m/px = 1.00000 (USD 324707 px, footprints 324708 px)"
   },
   {
    "id": "G2.7",
    "status": "PASS",
-   "detail": "class labels resolved per mesh: {'building': 753, 'ground': 1}; meshes without exactly one label: 0 []"
+   "detail": "class labels resolved per mesh: {'building': 252, 'ground': 1, 'boardwalk': 1, 'lawn': 1, 'median': 1, 'parking': 1, 'path': 1, 'pier': 1, 'plaza': 1, 'road': 1, 'sidewalk': 1, 'water': 1, 'road_marking': 3}; meshes without exactly one label: 0 []"
   },
   {
    "id": "G2.8",
-   "status": "PASS",
-   "detail": "38562 triangles, scene.usdc 1.40 MB"
+   "status": "WARN",
+   "detail": "36526581 triangles drawn (689036 stored once, the rest are repeated copies of placed models), scene.usdc 4.27 MB"
   },
   {
    "id": "G2.9",
    "status": "PASS",
-   "detail": "evidence/stage_2_120-broadway.png (500822 bytes)"
+   "detail": "evidence/stage_2_battery-shoreline.png (187882 bytes)"
   }
  ]
 }

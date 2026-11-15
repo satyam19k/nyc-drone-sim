@@ -2,7 +2,7 @@
  "stage": 5,
  "location": "120-broadway",
  "passed": true,
- "utc": "2026-11-14T16:30:13+00:00",
+ "utc": "2026-11-15T14:34:26+00:00",
  "checks": [
   {
    "id": "G5.1",
@@ -17,7 +17,7 @@
   {
    "id": "G5.3",
    "status": "WARN",
-   "detail": "150 ft: 24 frames with ground at centre, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: no frame has ground at the image centre, so this clip gives nothing to test"
+   "detail": "150 ft: 21 frames with ground at centre, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: no frame has ground at the image centre, so this clip gives nothing to test"
   },
   {
    "id": "G5.4",
@@ -27,22 +27,27 @@
   {
    "id": "G5.5",
    "status": "PASS",
-   "detail": "150 ft: frame-to-frame mean abs difference min 2.038, mean 3.889, max 5.437 (4-sigma limit 7.608); 500 ft: frame-to-frame mean abs difference min 2.066, mean 2.658, max 3.620 (4-sigma limit 3.921)"
+   "detail": "150 ft: frame-to-frame mean abs difference min 4.493, mean 6.093, max 7.807 (4-sigma limit 9.941); 500 ft: frame-to-frame mean abs difference min 2.370, mean 3.281, max 4.446 (4-sigma limit 4.958)"
   },
   {
    "id": "G5.6",
    "status": "WARN",
-   "detail": "150 ft: building share per frame min 72.0%, mean 77.3%, max 84.2%; 0 frames outside 5-95%; 500 ft: building share per frame min 88.9%, mean 91.8%, max 97.9%; 22 frames outside 5-95%; flagged for review"
+   "detail": "150 ft: building share per frame min 72.0%, mean 77.3%, max 84.2%; 0 frames outside 5-95%; 150 ft mean share of other classes: furniture 0.24%, ground 1.46%, person 0.16%, plaza 4.28%, road 7.51%, road_marking 0.41%, sidewalk 5.70%, vegetation 2.82%, vehicle 0.07%; 500 ft: building share per frame min 88.9%, mean 91.8%, max 97.9%; 22 frames outside 5-95%; 500 ft mean share of other classes: furniture 0.07%, ground 2.84%, person 0.02%, road 2.42%, road_marking 0.15%, sidewalk 2.42%, vehicle 0.38%; flagged for review"
   },
   {
    "id": "G5.7",
    "status": "PASS",
-   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 42.34 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.78 dB"
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.63 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.58 dB"
   },
   {
    "id": "G5.8",
    "status": "PASS",
-   "detail": "evidence/stage_5_120-broadway_150.png (264129 bytes); evidence/stage_5_120-broadway_500.png (380280 bytes)"
+   "detail": "evidence/stage_5_120-broadway_150.png (459536 bytes); evidence/stage_5_120-broadway_500.png (491192 bytes)"
+  },
+  {
+   "id": "G5.9",
+   "status": "PASS",
+   "detail": "150 ft: colourised depth grey levels p1 87 to p99 182 (range 95, need >= 64); 500 ft: colourised depth grey levels p1 35 to p99 104 (range 69, need >= 64)"
   }
  ]
 }
