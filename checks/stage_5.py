@@ -147,6 +147,20 @@ def main():
             det.append(f"{k} ft: PSNR of second frame-0 render against the clip's frame 0 = {psnr:.2f} dB")
         return ok, "; ".join(det)
 
+    def g59():
+        det, ok = [], True
+        need = float(cfg["render"]["depth_min_grey_range"])
+        for k in alts:
+            lo, hi = [], []
+            for i in range(0, n, 4):
+                im = np.asarray(Image.open(B[k] / "clip_0000" / "depth" / f"depth_{i:04d}.png").convert("L"))
+                lo.append(np.percentile(im, 1))
+                hi.append(np.percentile(im, 99))
+            rng = float(np.mean(hi) - np.mean(lo))
+            ok &= rng >= need
+            det.append(f"{k} ft: colourised depth grey levels p1 {np.mean(lo):.0f} to p99 {np.mean(hi):.0f} (range {rng:.0f}, need >= {need:g})")
+        return ok, "; ".join(det)
+
     def g58():
         import matplotlib
         matplotlib.use("Agg")
@@ -170,7 +184,7 @@ def main():
         return ok, "; ".join(det)
 
     for gid, fn in [("G5.1", g51), ("G5.2", g52), ("G5.3", g53), ("G5.4", g54), ("G5.5", g55),
-                    ("G5.6", g56), ("G5.7", g57), ("G5.8", g58)]:
+                    ("G5.6", g56), ("G5.7", g57), ("G5.8", g58), ("G5.9", g59)]:
         g.run(gid, fn)
     for k in alts:
         print(f"RGB video {k} ft: {B[k] / 'clip_0000' / 'rgb.mp4'}")

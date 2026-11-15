@@ -35,7 +35,28 @@ from pxr import Gf, UsdGeom  # noqa: E402
 
 from nyc_drone_sim.common import REPO_ROOT, load_config, scene_dir, slugify  # noqa: E402
 
+from omni.replicator.core.scripts.writers_default.cosmos import CosmosWriter  # noqa: E402
+
 DEPTH_ANNOTATOR = "distance_to_image_plane"   # metres, float32
+
+
+class CityCosmosWriter(CosmosWriter):
+    """CosmosWriter with a configurable range for its colourised depth picture.
+
+    The stock writer colourises depth over a fixed 0.1-100 m range, which leaves a city seen
+    from 45-150 m almost entirely black. Everything else is unchanged.
+    """
+
+    def __init__(self, *a, depth_near: float, depth_far: float, **k):
+        super().__init__(*a, **k)
+        idx = [i for i, an in enumerate(self.annotators) if getattr(an, "name", None) == "depth"]
+        if len(idx) != 1:
+            idx = [3]   # position of the depth annotator in CosmosWriter 0.0.2
+        self.annotators[idx[0]] = rep.AnnotatorRegistry.get_annotator("distance_to_camera").augment(
+            "ColorizeDepth", near=float(depth_near), far=float(depth_far), name="depth")
+
+
+rep.WriterRegistry.register(CityCosmosWriter)
 
 
 def sha256(p: Path) -> str:
@@ -118,8 +139,9 @@ def main():
 
     backend = rep.backends.get("DiskBackend")
     backend.initialize(output_dir=str(out))
-    writer = rep.WriterRegistry.get("CosmosWriter")
+    writer = rep.WriterRegistry.get("CityCosmosWriter")
     writer.initialize(backend=backend, use_instance_id=bool(rc["use_instance_id"]), segmentation_mapping=None,
+                      depth_near=rc["depth_colorize_near_m"], depth_far=rc["depth_colorize_far_m"],
                       canny_threshold_low=int(rc["canny_threshold_low"]),
                       canny_threshold_high=int(rc["canny_threshold_high"]))
     writer.attach(rp)
@@ -179,6 +201,7 @@ def main():
                    "use_instance_id": bool(rc["use_instance_id"]),
                    "canny_threshold_low": int(rc["canny_threshold_low"]),
                    "canny_threshold_high": int(rc["canny_threshold_high"]),
+                   "depth_colorize_range_m": [float(rc["depth_colorize_near_m"]), float(rc["depth_colorize_far_m"])],
                    "metric_depth_annotator": DEPTH_ANNOTATOR, "metric_depth_unit": "metres",
                    "metric_depth_format": "metric_depth/depth_NNNN.npy float32"},
         "semantic_info": jsonable(sem_info),
