@@ -21,7 +21,8 @@ ap.add_argument("--location", default="120 Broadway")
 ap.add_argument("--altitude", type=int, required=True)
 ap.add_argument("--run", required=True)
 ap.add_argument("--config", default=None)
-ap.add_argument("--variant", default=None, choices=["street"])
+ap.add_argument("--variant", default=None, choices=["street", "long"])
+ap.add_argument("--view", default=None, help="one of the place's extra camera views; use its own --run")
 args, _ = ap.parse_known_args()
 
 # SimulationApp must exist before any other Omniverse import.
@@ -35,7 +36,7 @@ import omni.timeline  # noqa: E402
 import omni.usd  # noqa: E402
 from pxr import Gf, UsdGeom  # noqa: E402
 
-from nyc_drone_sim.common import REPO_ROOT, load_config, scene_dir, slugify, variant_suffix  # noqa: E402
+from nyc_drone_sim.common import for_location, REPO_ROOT, load_config, scene_dir, slugify, variant_suffix  # noqa: E402
 
 from omni.replicator.core.scripts.writers_default.cosmos import CosmosWriter  # noqa: E402
 
@@ -78,11 +79,11 @@ def jsonable(v):
 
 
 def main():
-    cfg = load_config(args.config)
+    cfg = for_location(load_config(args.config), args.location)
     slug = slugify(args.location)
     sdir = scene_dir(cfg, slug)
     rc, cc = cfg["render"], cfg["camera"]
-    path_src = sdir / f"path_{args.altitude}{variant_suffix(args.variant)}.json"
+    path_src = sdir / f"path_{args.altitude}{variant_suffix(args.variant, args.view)}.json"
     path = json.loads(path_src.read_text())
     frames = path["frames"]
     fps = float(cfg["clip"]["fps"])
@@ -116,10 +117,40 @@ def main():
     cam.CreateClippingRangeAttr(Gf.Vec2f(*[float(v) for v in rc["clipping_range_m"]]))
     xform_op = UsdGeom.Xformable(cam).AddTransformOp()
 
+    # Recorded motion: poses per frame for moving vehicles and walking pedestrians. Only objects
+    # near the camera are updated; the rest keep the pose they were built with.
+    movers = None
+    motion_src = sdir / "motion.npz"
+    if cfg.get("populate", {}).get("enabled") and motion_src.exists():
+        mo = np.load(motion_src)
+        placed = {o["id"]: o for o in json.loads((sdir / "placements.json").read_text())["objects"]}
+        roots = {"vehicle": "Vehicles", "person": "People"}
+        ops, scales = [], []
+        for oid in mo["ids"].tolist():
+            prim = stage.GetPrimAtPath(f"/World/Objects/{roots[placed[oid]['class']]}/{oid}")
+            if not prim.IsValid():
+                raise RuntimeError(f"moving object {oid} is not in the stage")
+            ops.append(UsdGeom.Xformable(prim).GetOrderedXformOps()[0])
+            scales.append(float(placed[oid]["scale"]))
+        movers = {"ops": ops, "poses": mo["poses"], "scale": scales,
+                  "reach": float(rc["motion_radius_per_altitude"]) * path["altitude_m"] + float(rc["motion_radius_base_m"])}
+        if movers["poses"].shape[1] < len(frames):
+            raise RuntimeError("recorded motion is shorter than the clip")
+    moved_total = 0
+
     def set_pose(frame):
+        nonlocal moved_total
         # path.json is column-vector (p_world = M @ p_cam); USD matrices are row-vector, so transpose.
         m = np.asarray(frame["camera_to_world"], dtype=np.float64)
         xform_op.Set(Gf.Matrix4d(*m.T.flatten().tolist()))
+        if movers is not None:
+            pose = movers["poses"][:, frame["index"], :]
+            near = np.nonzero(np.hypot(pose[:, 0] - m[0, 3], pose[:, 1] - m[1, 3]) <= movers["reach"])[0]
+            for k in near.tolist():
+                x, y, yaw = (float(v) for v in pose[k])
+                c, s_, sc_ = np.cos(np.radians(yaw)), np.sin(np.radians(yaw)), movers["scale"][k]
+                movers["ops"][k].Set(Gf.Matrix4d(c * sc_, s_ * sc_, 0, 0, -s_ * sc_, c * sc_, 0, 0, 0, 0, sc_, 0, x, y, 0, 1))
+            moved_total += len(near)
 
     rp = rep.create.render_product(str(cam.GetPath()), tuple(int(v) for v in cc["resolution"]))
     depth = rep.AnnotatorRegistry.get_annotator(DEPTH_ANNOTATOR)
@@ -190,13 +221,19 @@ def main():
                           "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip()
     import importlib.metadata as md
     (out / "bundle.json").write_text(json.dumps({
-        "location": slug, "run_id": args.run, "variant": args.variant or "default",
+        "location": slug, "run_id": args.run, "variant": args.variant or "default", "view": args.view or "main",
         "origin": json.loads((sdir / "scene_meta.json").read_text())["origin"],
         "altitude_ft": args.altitude, "altitude_m": path["altitude_m"],
         "path_type": path["path_type"], "path_params": path["path_params"],
         "clip": {"frames": len(frames), "fps": fps, "duration_s": len(frames) / fps,
                  "resolution": list(cc["resolution"])},
-        "sha256": {"scene.usdc": sha256(sdir / "scene.usdc"), "path.json": sha256(out / "path.json")},
+        "sha256": {"scene.usdc": sha256(sdir / "scene.usdc"), "path.json": sha256(out / "path.json"),
+                   **({"placements.json": sha256(sdir / "placements.json"), "motion.npz": sha256(motion_src),
+                       "asset_manifest.json": sha256(REPO_ROOT / cfg["assets"]["library_dir"] / "manifest.json")}
+                      if movers is not None else {})},
+        "populated": movers is not None,
+        "moving_objects": 0 if movers is None else len(movers["ops"]),
+        "mean_objects_moved_per_frame": 0 if movers is None else moved_total / max(len(frames), 1),
         "isaacsim_version": md.version("isaacsim"),
         "render": {"renderer": "RTX default (as launched by SimulationApp headless)",
                    "rt_subframes": subframes, "warmup_frames": int(rc["warmup_frames"]),
@@ -215,7 +252,16 @@ def main():
     print(f"render done: {len(frames)} frames in {render_s:.1f} s -> {out}", flush=True)
 
 
+# Closing the app ends the process, which would swallow an exception raised in main(): print it
+# first and leave with a failing exit code so the batch job stops.
 try:
     main()
-finally:
-    simulation_app.close()
+except BaseException:
+    import os
+    import sys
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(1)
+simulation_app.close()

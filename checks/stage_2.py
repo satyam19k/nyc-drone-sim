@@ -12,7 +12,7 @@ from shapely.geometry import shape
 
 from _checks import REPO_ROOT, CheckList
 
-from nyc_drone_sim.common import load_config, scene_dir, slugify
+from nyc_drone_sim.common import for_location, load_config, scene_dir, slugify
 
 
 def mesh_arrays(prim):
@@ -82,7 +82,7 @@ def main():
     ap.add_argument("--location", default="120 Broadway")
     ap.add_argument("--config", default=None)
     a = ap.parse_args()
-    cfg = load_config(a.config)
+    cfg = for_location(load_config(a.config), a.location)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
     g = CheckList(2, slug)
@@ -176,9 +176,17 @@ def main():
         return ok, f"class labels resolved per mesh: {seen}; meshes without exactly one label: {len(bad)} {bad[:3]}"
 
     def g28():
-        tri = sum(len(t) for _, t in arrays.values()) + len(mesh_arrays(stage.GetPrimAtPath("/World/Ground"))[1])
+        # every mesh the renderer draws, including each placed copy of a model; a populated scene
+        # stores each model once and draws it many times, so both numbers are given
+        def count(prims):
+            return sum(len(UsdGeom.Mesh(p).GetFaceVertexCountsAttr().Get() or []) for p in prims if p.IsA(UsdGeom.Mesh))
+        own = count(stage.Traverse())                      # meshes authored once in the scene itself
+        per_model = {proto.GetPath(): count(Usd.PrimRange(proto)) for proto in stage.GetPrototypes()}
+        copies = [per_model[p.GetPrototype().GetPath()] for p in stage.Traverse() if p.IsInstance()]
+        drawn, stored = own + sum(copies), own + sum(per_model.values())
         mb = usd_path.stat().st_size / 1e6
-        return True, f"{tri} triangles, scene.usdc {mb:.2f} MB", tri > 5_000_000
+        return True, (f"{drawn} triangles drawn ({stored} stored once, the rest are repeated copies of placed models), "
+                      f"scene.usdc {mb:.2f} MB"), drawn > 5_000_000
 
     def g29():
         import matplotlib

@@ -15,7 +15,8 @@ import mapbox_earcut as earcut
 import numpy as np
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdShade, Vt
 
-from .common import load_config, scene_dir, slugify
+from . import dress
+from .common import for_location, load_config, scene_dir, slugify
 
 log = logging.getLogger("stage2")
 
@@ -161,12 +162,78 @@ def _mesh(stage, path: str, pts: np.ndarray, tris: np.ndarray, nrm: np.ndarray, 
     return mesh
 
 
+def facade_textures(tex_dir: Path, fc: dict) -> dict:
+    """One-bay, one-floor tiles: a wall with a window, and a glass wall with spandrel and mullions."""
+    from PIL import Image, ImageDraw
+    tex_dir.mkdir(parents=True, exist_ok=True)
+    n = int(fc["tile_px"])
+    out = {}
+    for name, (wall, glass, wx, wy) in {"masonry": ((200, 198, 194), (62, 78, 94), 0.46, 0.5),
+                                        "glass": ((158, 163, 168), (100, 124, 146), 0.88, 0.72)}.items():
+        im = Image.new("RGB", (n, n), wall)
+        d = ImageDraw.Draw(im)
+        x0, y0 = n * (1 - wx) / 2, n * (1 - wy) / 2
+        d.rectangle([x0, y0, n - x0 - 1, n - y0 - 1], fill=glass)
+        d.line([n / 2, y0, n / 2, n - y0 - 1], fill=wall, width=max(1, n // 32))
+        f = tex_dir / f"facade_{name}.png"
+        im.save(f)
+        out[name] = f
+    return out
+
+
+def _texture_material(stage, path: str, file: str, tint, roughness: float):
+    """UsdPreviewSurface whose colour is a tiled texture multiplied by a tint."""
+    mat = UsdShade.Material.Define(stage, path)
+    sh = UsdShade.Shader.Define(stage, path + "/Surface")
+    sh.CreateIdAttr("UsdPreviewSurface")
+    sh.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(float(roughness))
+    sh.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(0.0)
+    rd = UsdShade.Shader.Define(stage, path + "/St")
+    rd.CreateIdAttr("UsdPrimvarReader_float2")
+    rd.CreateInput("varname", Sdf.ValueTypeNames.String).Set("st")
+    tx = UsdShade.Shader.Define(stage, path + "/Tex")
+    tx.CreateIdAttr("UsdUVTexture")
+    tx.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath(file))
+    tx.CreateInput("sourceColorSpace", Sdf.ValueTypeNames.Token).Set("sRGB")
+    tx.CreateInput("wrapS", Sdf.ValueTypeNames.Token).Set("repeat")
+    tx.CreateInput("wrapT", Sdf.ValueTypeNames.Token).Set("repeat")
+    tx.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(float(tint[0]), float(tint[1]), float(tint[2]), 1.0))
+    tx.CreateInput("st", Sdf.ValueTypeNames.Float2).ConnectToSource(rd.CreateOutput("result", Sdf.ValueTypeNames.Float2))
+    sh.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).ConnectToSource(tx.CreateOutput("rgb", Sdf.ValueTypeNames.Float3))
+    mat.CreateSurfaceOutput().ConnectToSource(sh.CreateOutput("surface", Sdf.ValueTypeNames.Token))
+    return mat
+
+
+def facade_coords(pts: np.ndarray, tris: np.ndarray, nrm: np.ndarray, fc: dict):
+    """Texture coordinates per vertex, and the wall and roof triangle indices.
+
+    Walls: one tile per bay along the wall and per floor up it. Roof and base: metres.
+    Vertices are not shared between faces of different orientation, so this is exact.
+    """
+    st = np.zeros((len(pts), 2))
+    wall = np.abs(nrm[:, 2]) < 0.5
+    t = np.column_stack([-nrm[:, 1], nrm[:, 0]])                      # along the wall
+    for k in range(3):
+        v = tris[wall, k]
+        st[v, 0] = (pts[v, 0] * t[wall, 0] + pts[v, 1] * t[wall, 1]) / float(fc["bay_m"])
+        st[v, 1] = pts[v, 2] / float(fc["floor_m"])
+        v = tris[~wall, k]
+        st[v] = pts[v, :2] / float(fc["roof_tile_m"])
+    return st, np.nonzero(wall)[0], np.nonzero(nrm[:, 2] > 0.5)[0]
+
+
 def _label(prim, label: str) -> None:
     labels = UsdSemantics.LabelsAPI.Apply(prim, "class")
     labels.CreateLabelsAttr([label])
 
 
-def build_scene(features: list[dict], cfg: dict, out_usd: Path) -> dict:
+def dressed(cfg: dict, sdir: Path | None) -> bool:
+    """True when the street layers and placements exist and the config asks for them."""
+    return bool(sdir is not None and cfg.get("populate", {}).get("enabled")
+                and all((sdir / n).exists() for n in ("surfaces.geojson", "markings.geojson", "placements.json")))
+
+
+def build_scene(features: list[dict], cfg: dict, out_usd: Path, sdir: Path | None = None) -> dict:
     sc = cfg["scene"]
     R = float(cfg["scene_radius_m"])
     stage = Usd.Stage.CreateNew(str(out_usd))
@@ -180,6 +247,14 @@ def build_scene(features: list[dict], cfg: dict, out_usd: Path) -> dict:
     mat_b = _material(stage, looks + "/Building", color=sc["building_color_base"], use_display_color=True)
     mat_g = _material(stage, looks + "/Ground", color=sc["ground_color"], roughness=0.9)
 
+    fc = sc.get("facade") or {}
+    walls, roofs = [], []
+    if fc.get("enabled"):
+        tiles = facade_textures(out_usd.parent / "tex", fc)
+        for k, tint in enumerate(fc["wall_tints"]):
+            for style in ("masonry", "glass"):
+                walls.append((style, _texture_material(stage, f"{looks}/Wall_{style}_{k}", f"tex/{tiles[style].name}", tint, 0.6 if style == "masonry" else 0.25)))
+        roofs = [_material(stage, f"{looks}/Roof_{k}", color=c, roughness=0.9) for k, c in enumerate(fc["roof_colors"])]
     broot = UsdGeom.Xform.Define(stage, "/World/Buildings")
     n_tri = 0
     max_h = 0.0
@@ -198,21 +273,46 @@ def build_scene(features: list[dict], cfg: dict, out_usd: Path) -> dict:
         prim.CreateAttribute("bin", Sdf.ValueTypeNames.String).Set(str(p["bin"]))
         prim.CreateAttribute("height_m", Sdf.ValueTypeNames.Double).Set(h)
         prim.CreateAttribute("height_imputed", Sdf.ValueTypeNames.Bool).Set(bool(p["height_imputed"]))
+        if walls:
+            # appearance only: texture coordinates and face groups; points and faces are untouched
+            st, wall_faces, roof_faces = facade_coords(pts, tris, nrm, fc)
+            pv = UsdGeom.PrimvarsAPI(mesh).CreatePrimvar("st", Sdf.ValueTypeNames.TexCoord2fArray, UsdGeom.Tokens.vertex)
+            pv.Set(Vt.Vec2fArray.FromNumpy(st.astype(np.float32)))
+            hsh = hashlib.sha256(str(p["doitt_id"]).encode()).digest()
+            # tall buildings lean to glass walls, low ones to masonry
+            glassy = h >= float(fc["glass_above_m"]) and hsh[2] < 200 or hsh[2] < 25
+            pool = [m for style, m in walls if (style == "glass") == glassy]
+            for nm_, faces, mat in (("walls", wall_faces, pool[hsh[3] % len(pool)]), ("roof", roof_faces, roofs[hsh[4] % len(roofs)])):
+                sub_ = UsdGeom.Subset.CreateGeomSubset(mesh, nm_, UsdGeom.Tokens.face, Vt.IntArray.FromNumpy(faces.astype(np.int32)),
+                                                       UsdShade.Tokens.materialBind)
+                UsdShade.MaterialBindingAPI.Apply(sub_.GetPrim()).Bind(mat)
+            UsdGeom.Subset.SetFamilyType(mesh, UsdShade.Tokens.materialBind, UsdGeom.Tokens.nonOverlapping)
         n_tri += len(tris)
         max_h = max(max_h, h)
     UsdShade.MaterialBindingAPI.Apply(broot.GetPrim()).Bind(mat_b)
 
     half = sc["ground_side_factor"] * R / 2.0
-    gpts = np.array([[-half, -half, 0], [half, -half, 0], [half, half, 0], [-half, half, 0]], float)
-    gtris = np.array([[0, 1, 2], [0, 2, 3]])
-    ground = _mesh(stage, "/World/Ground", gpts, gtris, np.tile([0.0, 0.0, 1.0], (2, 1)),
+    street = dressed(cfg, sdir)
+    if street:
+        # the ground is what is left of the square once the street surfaces are cut out of it
+        gpts, gtris = dress.triangulate(dress.ground_remainder(sdir, half), 0.0)
+    else:
+        gpts = np.array([[-half, -half, 0], [half, -half, 0], [half, half, 0], [-half, half, 0]], float)
+        gtris = np.array([[0, 1, 2], [0, 2, 3]])
+    ground = _mesh(stage, "/World/Ground", gpts, gtris, np.tile([0.0, 0.0, 1.0], (len(gtris), 1)),
                    sc["ground_color"])
     UsdShade.MaterialBindingAPI.Apply(ground.GetPrim()).Bind(mat_g)
-    n_tri += 2
+    n_tri += len(gtris)
 
     if HAVE_USD_SEMANTICS:
         _label(broot.GetPrim(), "building")   # inherited by every child mesh
         _label(ground.GetPrim(), "ground")
+    street_stats = None
+    if street:
+        if not HAVE_USD_SEMANTICS:
+            raise RuntimeError("the populated scene needs UsdSemantics in usd-core")
+        street_stats = dress.add_street_layers(stage, sdir, cfg, _mesh, _material, _label)
+        n_tri += street_stats["triangles"]
 
     sun = UsdLux.DistantLight.Define(stage, "/World/Sun")
     sun.CreateIntensityAttr(float(sc["sun_intensity"]))
@@ -231,18 +331,20 @@ def build_scene(features: list[dict], cfg: dict, out_usd: Path) -> dict:
         "max_height_m": max_h,
         "labels_applied_in_stage2": HAVE_USD_SEMANTICS,
         "file_bytes": out_usd.stat().st_size,
+        "street": street_stats,
     }
 
 
 def run_stage2(location: str, cfg: dict, out_dir: Path | None = None) -> Path:
     slug = slugify(location)
+    cfg = for_location(cfg, location)
     sdir = out_dir or scene_dir(cfg, slug)
     feats = json.loads((sdir / "buildings.geojson").read_text())["features"]
     loc = json.loads((sdir / "location.json").read_text())
     out_usd = sdir / "scene.usdc"
     if out_usd.exists():
         out_usd.unlink()
-    meta = build_scene(feats, cfg, out_usd)
+    meta = build_scene(feats, cfg, out_usd, sdir)
     meta.update({
         "location": slug,
         "origin": {"lat": loc["lat"], "lon": loc["lon"], "projection": loc["projection"]},

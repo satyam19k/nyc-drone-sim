@@ -25,7 +25,7 @@ import omni.replicator.core as rep  # noqa: E402
 import omni.usd  # noqa: E402
 from pxr import Gf, UsdGeom  # noqa: E402
 
-from nyc_drone_sim.common import load_config, scene_dir, slugify  # noqa: E402
+from nyc_drone_sim.common import for_location, load_config, scene_dir, slugify  # noqa: E402
 
 DEPTH_ANNOTATOR = "distance_to_image_plane"   # metres, float32 (omni.replicator.core docs)
 
@@ -51,7 +51,7 @@ class VramPeak(threading.Thread):
 
 
 def main():
-    cfg = load_config(args.config)
+    cfg = for_location(load_config(args.config), args.location)
     slug = slugify(args.location)
     sdir = scene_dir(cfg, slug)
     out_dir = sdir / "probe"
@@ -126,7 +126,16 @@ def main():
     print(f"probe done: load {load_s:.1f} s, peak VRAM {mon.peak:.0f} / {vram_total} MiB on {gpu_name}", flush=True)
 
 
+# Closing the app ends the process, which would swallow an exception raised in main(): print it
+# first and leave with a failing exit code so the batch job stops.
 try:
     main()
-finally:
-    simulation_app.close()
+except BaseException:
+    import os
+    import sys
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(1)
+simulation_app.close()

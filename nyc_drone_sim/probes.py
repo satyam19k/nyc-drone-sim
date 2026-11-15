@@ -10,15 +10,23 @@ import shapely
 from shapely.geometry import shape
 from shapely.strtree import STRtree
 
-from .common import altitude_m, load_config, scene_dir, slugify
+from .common import altitude_m, for_location, load_config, scene_dir, slugify
 
 log = logging.getLogger("probes")
 
 
-def pick_probes(feats: list[dict], cfg: dict) -> dict:
+def pick_probes(feats: list[dict], cfg: dict, objects: list[dict] | None = None, water=None) -> dict:
+    """`objects` are the placed models of a populated scene; the ground probe avoids them.
+
+    `water` is the scene's water surface, if any. The ground probe stays on land: a frame of
+    open water has nothing in it to judge exposure or labels by.
+    """
     pc = cfg["probe"]
     geoms = [shape(f["geometry"]) for f in feats]
     tree = STRtree(geoms)
+    obj_xy = np.array([[o["x"], o["y"]] for o in objects or []], dtype=np.float64).reshape(-1, 2)
+    # an object keeps the probe away by its own half-size (a tree by its crown) plus the margin
+    obj_r = np.array([o.get("crown_m", 6.0) / 2 for o in objects or []], dtype=np.float64) + float(pc["ground_object_clear_m"])
 
     # P_ground: nearest grid point to the target with no building within the free radius
     step, free, R = float(pc["ground_search_step_m"]), float(pc["ground_free_radius_m"]), float(cfg["scene_radius_m"])
@@ -29,6 +37,11 @@ def pick_probes(feats: list[dict], cfg: dict) -> dict:
     p_ground = None
     for i in order:
         near = tree.query(pts[i], predicate="dwithin", distance=free)
+        if len(near) == 0 and water is not None and pts[i].distance(water) < free:
+            continue
+        if len(near) == 0 and len(obj_xy):
+            if (np.hypot(obj_xy[:, 0] - X.ravel()[i], obj_xy[:, 1] - Y.ravel()[i]) < obj_r).any():
+                continue
         if len(near) == 0:
             p_ground = (float(X.ravel()[i]), float(Y.ravel()[i]))
             nearest = float(pts[i].distance(geoms[tree.nearest(pts[i])]))
@@ -75,9 +88,18 @@ def pick_probes(feats: list[dict], cfg: dict) -> dict:
 
 
 def run(location: str, cfg: dict):
+    cfg = for_location(cfg, location)
     sdir = scene_dir(cfg, slugify(location))
     feats = json.loads((sdir / "buildings.geojson").read_text())["features"]
-    out = pick_probes(feats, cfg)
+    placed = sdir / "placements.json"
+    objects = json.loads(placed.read_text())["objects"] if cfg.get("populate", {}).get("enabled") and placed.exists() else None
+    water = None
+    if objects is not None and (sdir / "surfaces.geojson").exists():
+        from shapely.ops import unary_union
+        w = [shape(f["geometry"]) for f in json.loads((sdir / "surfaces.geojson").read_text())["features"]
+             if f["properties"]["class"] == "water"]
+        water = unary_union(w) if w else None
+    out = pick_probes(feats, cfg, objects, water)
     (sdir / "probes.json").write_text(json.dumps(out, indent=1) + "\n")
     for pr in out["probes"]:
         log.info("%s at %s, expect %.2f m, %s", pr["name"], [round(v, 2) for v in pr["position"]],

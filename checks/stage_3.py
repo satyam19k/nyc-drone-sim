@@ -9,7 +9,7 @@ import numpy as np
 
 from _checks import REPO_ROOT, CheckList
 
-from nyc_drone_sim.common import load_config, scene_dir, slugify
+from nyc_drone_sim.common import for_location, load_config, scene_dir, slugify
 
 UNLABELLED = {"BACKGROUND", "UNLABELLED", ""}
 
@@ -24,7 +24,7 @@ def main():
     ap.add_argument("--location", default="120 Broadway")
     ap.add_argument("--config", default=None)
     a = ap.parse_args()
-    cfg = load_config(a.config)
+    cfg = for_location(load_config(a.config), a.location)
     slug = slugify(a.location)
     pdir = scene_dir(cfg, slug) / "probe"
     g = CheckList(3, slug)
@@ -47,6 +47,7 @@ def main():
         return fn
 
     names = [pr["name"] for pr in res["probes"]]
+    flat = set(cfg["scene"]["flat_classes"])
     ground = [n for n in names if n.startswith("ground")]
 
     def g34():
@@ -58,10 +59,14 @@ def main():
             c = label_of(info, seg[h // 2, w // 2])
             ids, cnt = np.unique(seg, return_counts=True)
             un = sum(int(k) for i, k in zip(ids, cnt) if label_of(info, i) in UNLABELLED) / seg.size
-            good = c == p["meta"]["expect_label"] and un < 0.01
+            want = p["meta"]["expect_label"]
+            # in a populated scene the ground under the camera may be road, sidewalk and so on;
+            # any class that lies on the ground plane counts, objects and buildings do not
+            good = (c in flat if want == "ground" else c == want) and un < 0.01
             ok &= good
             shares = {label_of(info, i) or "?": round(int(k) / seg.size, 4) for i, k in zip(ids, cnt)}
-            det.append(f"{n}: centre '{c}' (expected '{p['meta']['expect_label']}'), unlabelled {un:.2%}, shares {shares}")
+            det.append(f"{n}: centre '{c}' (expected '{want}'" + (", any ground-level class" if want == "ground" else "")
+                       + f"), unlabelled {un:.2%}, shares {shares}")
         return ok, "; ".join(det)
 
     def g35():
