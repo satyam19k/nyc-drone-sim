@@ -334,3 +334,38 @@ $ env_cpu/bin/python checks/populate.py --run run_005
 [PASS] P12: stage 1: exit 0, 9 checks, failed none, warnings none; stage 2: exit 0, 9 checks, failed none, warnings ['[WARN] G2.8']; stage 3: exit 0, 7 checks, failed none, warnings none; stage 4: exit 0, 8 checks, failed none, warnings none; stage 5: exit 0, 
 populate: PASSED -> /scratch/sk12075/nyc-drone-sim/reports/populate.json
 ```
+
+## Render check: G5.3 centre block and scene-aware G5.9, 2026-11-15
+
+- G5.3 failed on the 120 Broadway street clips (run_008): 3 of 627 frames at 150 ft (worst 9.14%) and 1 of 309 at 500 ft (1.98%). In all four frames a vehicle, pole or tree covered part of the 2 x 2 centre block whose depth is averaged, while the class was read from one pixel. With all four pixels on ground the worst error was 0.044% and 0.013%. Camera height recovered from every ground pixel of 12 frames per clip is 45.72 m and 152.40 m in both run folders.
+- Fix: a frame counts only when every pixel of the centre block is a ground class. The 1% limit is unchanged.
+- G5.9 failed on every waterfront clip (55 and 59 grey levels for Hudson, limit 64). Bare flat ground at -45 deg spans 50 of 255 levels on the 5-500 m log scale at either altitude, so a fixed 64 cannot be met by a flat scene.
+- Fix, approved by the owner: the expected range is computed per frame from metric depth through the configured scale (formula matches stored pictures within 0.5 grey level) and the picture must reach `render.depth_grey_range_share` (0.9) of it. `render.depth_min_grey_range` is removed. The stock 0.1-100 m scale, simulated on one frame of each of four clips, is still rejected (30, 0, 45, 8 against 55, 51, 67, 73 needed).
+- `env_cpu/bin/python checks/stage_5.py --location hudson-park-run --run run_006 --variant long`
+
+```
+[PASS] G5.3: 150 ft: 478 frames with ground over the whole centre block, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: 472 frames ..., worst altitude error 0.000%
+[PASS] G5.9: 150 ft: ... (range 55); the scene's metric depth gives 55 on the 5-500 m scale, need >= 90% of it; 500 ft: ... (range 59); ... gives 59 ...
+stage 5: PASSED -> reports/stage_5_long.json
+```
+
+- `env_cpu/bin/python checks/stage_5.py --run run_008 --variant street`
+
+```
+[PASS] G5.3: 150 ft: 623 frames with ground over the whole centre block, centre depth 64.66 m (expected 64.7), worst altitude error 0.044%; 500 ft: 306 frames ..., worst altitude error 0.013%
+[PASS] G5.9: 150 ft: ... (range 68); the scene's metric depth gives 68 ...; 500 ft: ... (range 102); ... gives 102 ...
+stage 5: PASSED -> reports/stage_5_street.json
+```
+
+- Two additions asked for by the owner before committing. G5.3 now needs at least `render.centre_depth_min_frames` (10) counted frames per clip and otherwise reports "not evaluated" instead of passing. New check G5.10 recovers the camera height from every ground pixel (metric depth times the ray's downward slope, every 8th frame) and requires the per-frame median within 1% of the altitude.
+
+```
+hudson-park-run, run_006, long
+[PASS] G5.3: 150 ft: 478 frames ..., worst altitude error 0.000%; 500 ft: 472 frames ..., worst altitude error 0.000%
+[PASS] G5.10: 150 ft: camera height from 49.5 M ground pixels in 60 frames: per-frame median 45.720 to 45.720 m (altitude 45.72 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%; 500 ft: 34.6 M ground pixels in 60 frames: 152.400 to 152.400 m
+stage 5: PASSED -> reports/stage_5_long.json
+120 Broadway, run_008, street
+[PASS] G5.3: 150 ft: 623 frames ..., worst altitude error 0.044%; 500 ft: 306 frames ..., worst altitude error 0.013%
+[PASS] G5.10: 150 ft: camera height from 36.9 M ground pixels in 80 frames: 45.720 to 45.720 m; 500 ft: 12.3 M ground pixels in 80 frames: 152.400 to 152.400 m
+stage 5: PASSED -> reports/stage_5_street.json
+```

@@ -132,7 +132,11 @@ render:
   # range of the writer's colourised depth picture (log scale, near = white, far = black)
   depth_colorize_near_m: 5
   depth_colorize_far_m: 500
-  depth_min_grey_range: 64
+  # the depth picture must span this share of the grey range its own metric depth gives on that scale
+  depth_grey_range_share: 0.9
+  # the centre-depth and ground-height checks need this many usable frames, else they report "not evaluated"
+  centre_depth_min_frames: 10
+  ground_height_frame_step: 8     # the ground-height check reads every this many frames
   # recorded motion is applied to objects within altitude * per_altitude + base of the camera
   motion_radius_per_altitude: 3.2
   motion_radius_base_m: 110
