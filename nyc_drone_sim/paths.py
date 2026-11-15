@@ -19,11 +19,12 @@ from pathlib import Path
 
 import numpy as np
 import shapely
-from scipy import ndimage
+from scipy import ndimage, sparse
+from scipy.sparse import csgraph
 from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
-from .common import REPO_ROOT, altitude_m, load_config, scene_dir, slugify
+from .common import REPO_ROOT, altitude_m, clip_settings, load_config, scene_dir, slugify, variant_suffix
 
 log = logging.getLogger("stage4")
 
@@ -95,12 +96,13 @@ def frustum_ground(m: np.ndarray, cam: Pinhole) -> np.ndarray | None:
 class Obstacles:
     """2 m grid of buildings taller than (altitude - vertical clearance), dilated laterally."""
 
-    def __init__(self, feats: list[dict], alt_m: float, cfg: dict):
+    def __init__(self, feats: list[dict], alt_m: float, cfg: dict, limit: float | None = None):
         self.R = float(cfg["scene_radius_m"])
         self.res = float(cfg["paths"]["grid_res_m"])
         self.half = self.R + float(cfg["paths"]["grid_margin_m"])
         self.lateral = float(cfg["clearance_m"]["lateral"])
-        limit = alt_m - float(cfg["clearance_m"]["vertical"])
+        if limit is None:
+            limit = alt_m - float(cfg["clearance_m"]["vertical"])
         self.tall = [shape(f["geometry"]) for f in feats if f["properties"]["height_m"] > limit]
         n = int(round(2 * self.half / self.res))
         occ = np.zeros((n, n), dtype=bool)
@@ -118,6 +120,7 @@ class Obstacles:
             occ[y0:y1, x0:x1] |= near
         self.occupied = occ
         dist = ndimage.distance_transform_edt(~occ) * self.res if occ.any() else np.full(occ.shape, np.inf)
+        self.dist = dist
         self.blocked = dist <= self.lateral
         self.tree = STRtree(self.tall) if self.tall else None
 
@@ -143,8 +146,9 @@ class Obstacles:
 # ---------------------------------------------------------------------------
 # Candidates
 # ---------------------------------------------------------------------------
-def frame_times(cfg: dict) -> np.ndarray:
-    return np.arange(int(cfg["clip"]["frames"])) / float(cfg["clip"]["fps"])
+def frame_times(cfg: dict, variant: str | None = None) -> np.ndarray:
+    frames, fps = clip_settings(cfg, variant)
+    return np.arange(frames) / fps
 
 
 def flyover(heading_deg: float, alt: float, speed: float, t: np.ndarray, pitch_deg: float):
@@ -246,7 +250,193 @@ def plan(feats: list[dict], alt_ft: float, cfg: dict) -> dict:
         kind, params, order = "hover_pan", {"position": [float(p0[0]), float(p0[1])],
                                            "sweep_deg": sweep}, -1
 
-    near = [f for f in feats if shape(f["geometry"]).distance(Point(0, 0)) <= float(pc["taller_share_radius_m"])]
+    return path_record(feats, alt_ft, cfg, kind, params, xy, yaw, t, ev, obs, cam,
+                       {"candidates": n_candidates, "survivors": len(survivors), "tie_break_order": order})
+
+
+# ---------------------------------------------------------------------------
+# Street routes: long clips that follow the street corridors for several blocks
+# ---------------------------------------------------------------------------
+class StreetNetwork:
+    """Shortest routes along the streets that are flyable at one altitude.
+
+    A street cell lies in the gap between building footprints of any height and is clear of the
+    altitude's obstacles. Edge cost grows toward the footprints, so routes keep to the street
+    centre line. At a high altitude the camera therefore still follows streets, above the roofs.
+    """
+
+    def __init__(self, feats: list[dict], alt_m: float, cfg: dict):
+        sc = cfg["street"]
+        self.obs = obs = Obstacles(feats, alt_m, cfg)
+        ground = Obstacles(feats, alt_m, cfg, limit=float("-inf")).dist    # distance to any footprint
+        n = obs.blocked.shape[0]
+        c = (np.arange(n) + 0.5) * obs.res - obs.half
+        X, Y = np.meshgrid(c, c)
+        free = ~obs.blocked & (ground >= float(sc["min_half_width_m"])) & (np.hypot(X, Y) <= obs.R)
+        ids = -np.ones((n, n), dtype=np.int64)
+        ids[free] = np.arange(int(free.sum()))
+        self.cell_xy = np.column_stack([X[free], Y[free]])
+        self.cell_clear = ground[free]
+        cap = float(sc["centre_cap_m"])
+        # room around a cell: to the nearest footprint, and to the edge of the altitude's no-fly zone
+        room = np.minimum(ground, obs.dist - obs.lateral)
+        w = (cap / np.clip(room, obs.res, cap)) ** 2        # 1 mid-street, larger toward either edge
+        rows, cols, vals = [], [], []
+        for di, dj in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            sa = (slice(0, n - di), slice(max(0, -dj), n - max(0, dj)))
+            sb = (slice(di, n), slice(max(0, dj), n + min(0, dj)))
+            ok = (ids[sa] >= 0) & (ids[sb] >= 0)
+            rows.append(ids[sa][ok]); cols.append(ids[sb][ok])
+            vals.append(obs.res * math.hypot(di, dj) * 0.5 * (w[sa][ok] + w[sb][ok]))
+        m = len(self.cell_xy)
+        self.graph = sparse.csr_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(m, m))
+        # one node per block of node_spacing_m: its free cell farthest from any building
+        block = float(sc["node_spacing_m"])
+        key = np.floor((self.cell_xy + obs.half) / block).astype(np.int64)
+        order = np.lexsort((np.arange(m), -np.round(self.cell_clear, 6), key[:, 1], key[:, 0]))
+        first = np.ones(m, dtype=bool)
+        first[1:] = np.any(key[order][1:] != key[order][:-1], axis=1)
+        self.nodes = np.sort(order[first])
+
+    def routes(self, min_len: float, max_len: float):
+        """Yield (i, j, xy) for every node pair whose shortest route has a usable length."""
+        for a, src in enumerate(self.nodes):
+            cost, pred = csgraph.dijkstra(self.graph, directed=False, indices=int(src), return_predecessors=True)
+            for b in range(a + 1, len(self.nodes)):
+                dst = int(self.nodes[b])
+                if not np.isfinite(cost[dst]) or cost[dst] < min_len:
+                    continue
+                chain = [dst]
+                while chain[-1] != src:
+                    chain.append(int(pred[chain[-1]]))
+                xy = self.cell_xy[chain[::-1]]
+                length = float(np.hypot(*np.diff(xy, axis=0).T).sum())
+                if min_len <= length <= max_len:
+                    yield a, b, np.asarray(chain[::-1])
+
+
+def corner_reach(xy: np.ndarray, yaw_deg: np.ndarray, alt: float, cam: Pinhole) -> np.ndarray:
+    """Per frame, the largest distance from the origin of the four frustum corner ground hits."""
+    th, tv = cam.tan_half
+    p = math.radians(cam.pitch_deg)
+    y = np.radians(yaw_deg)
+    fwd = np.column_stack([np.cos(y), np.sin(y)])
+    right = np.column_stack([np.sin(y), -np.cos(y)])
+    far = np.zeros(len(xy))
+    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        # camera-frame ray (sx*th, sy*tv, -1): forward part cos/sin of pitch, up part from sy
+        horiz = math.cos(p) - sy * tv * math.sin(p)
+        down = -math.sin(p) - sy * tv * math.cos(p)
+        if down <= 1e-9:
+            return np.full(len(xy), np.inf)
+        t = alt / down
+        g = xy + t * horiz * fwd + t * sx * th * right
+        far = np.maximum(far, np.hypot(g[:, 0], g[:, 1]))
+    return far
+
+
+def smooth_route(xy: np.ndarray, sigma_m: float, step: float, yaw_sigma_m: float):
+    """Densify to a fixed step, smooth, and return points, arc length and heading (deg, unwrapped).
+
+    The heading is smoothed further than the track so the view does not swing with every bend.
+    """
+    s = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(xy, axis=0).T))])
+    u = np.arange(0.0, s[-1], step)
+    d = np.column_stack([np.interp(u, s, xy[:, 0]), np.interp(u, s, xy[:, 1])])
+    d = ndimage.gaussian_filter1d(d, sigma_m / step, axis=0, mode="nearest")
+    arc = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(d, axis=0).T))])
+    g = np.gradient(d, axis=0)
+    head = np.degrees(np.unwrap(np.arctan2(g[:, 1], g[:, 0])))
+    return d, arc, ndimage.gaussian_filter1d(head, yaw_sigma_m / step, mode="nearest")
+
+
+def plan_street(feats: list[dict], alt_ft: float, cfg: dict) -> dict:
+    sc, pc = cfg["street"], cfg["paths"]
+    cam = Pinhole(cfg["camera"])
+    alt = altitude_m(alt_ft)
+    speed = float(cfg["speed_mps"][int(alt_ft)])
+    R = float(cfg["scene_radius_m"])
+    t = frame_times(cfg, "street")
+    n = len(t)
+    length = speed * (t[-1] - t[0])
+    net = StreetNetwork(feats, alt, cfg)
+    obs = net.obs
+    lead = alt / math.tan(math.radians(-cam.pitch_deg))
+    res = net.obs.res
+    win = int(math.ceil(length / res)) + 1          # cells that surely span the clip length
+    step = max(1, int(round(float(sc["window_step_m"]) / res)))
+    span = max(2, int(round(float(sc["tangent_baseline_m"]) / res)))
+    tbin, dbin = float(sc["target_bin_m"]), float(sc["detour_bin"])
+
+    # Rank every window of every route: image centre closest to the target, then straightest,
+    # then widest street.
+    cands = []
+    routes = {}
+    for order, (a, b, chain) in enumerate(net.routes(length * 1.1, length * float(sc["max_route_factor"]))):
+        routes[(a, b)] = chain
+        for rev in (0, 1):
+            ch = chain[::-1] if rev else chain
+            if len(ch) <= win:
+                continue
+            xy = net.cell_xy[ch]
+            tan = xy[np.minimum(np.arange(len(xy)) + span, len(xy) - 1)] - xy[np.maximum(np.arange(len(xy)) - span, 0)]
+            tan /= np.maximum(np.hypot(tan[:, 0], tan[:, 1]), 1e-9)[:, None]
+            look = np.hypot(*(xy + lead * tan).T)
+            clear = net.cell_clear[ch]
+            run = np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(xy, axis=0).T))])
+            for i0 in range(0, len(ch) - win, step):
+                i1 = i0 + win - 1
+                detour = 1.0 - float(np.hypot(*(xy[i1] - xy[i0]))) / (run[i1] - run[i0])
+                cands.append((int(look[i0:i0 + win].min() // tbin), int(detour // dbin),
+                              -round(float(clear[i0:i0 + win].min()), 1), order, rev, i0, a, b))
+    cands.sort()
+    chosen = None
+    tried = 0
+    smoothed = {}
+    for _, _, _, order, rev, i0, a, b in cands:
+        chain = routes[(a, b)]
+        xy0 = net.cell_xy[chain[::-1] if rev else chain]
+        start = float(np.hypot(*np.diff(xy0[:i0 + 1], axis=0).T).sum()) if i0 else 0.0
+        for sigma in (float(v) for v in sc["smooth_sigma_m"]):
+            tried += 1
+            if (a, b, rev, sigma) not in smoothed:
+                if len(smoothed) > 64:
+                    smoothed.clear()
+                smoothed[(a, b, rev, sigma)] = smooth_route(xy0, sigma, float(sc["dense_step_m"]),
+                                                             float(sc["yaw_sigma_m"]))
+            d, arc, head = smoothed[(a, b, rev, sigma)]
+            s = start + speed * (t - t[0])
+            if s[-1] > arc[-1]:
+                break
+            xy = np.column_stack([np.interp(s, arc, d[:, 0]), np.interp(s, arc, d[:, 1])])
+            yaw = np.interp(s, arc, head)
+            if np.abs(np.diff(yaw) / np.diff(t)).max() > float(pc["max_yaw_rate_deg_s"]):
+                continue
+            if corner_reach(xy, yaw, alt, cam).max() > R:
+                break
+            ev = evaluate(xy, yaw, alt, cam, obs, t, R, float(pc["max_yaw_rate_deg_s"]))
+            if ev is None:
+                continue
+            chosen = (xy, yaw, ev, {"from": [float(v) for v in xy[0]], "to": [float(v) for v in xy[-1]],
+                                    "length_m": float(length), "smooth_sigma_m": sigma})
+            break
+        if chosen:
+            break
+    if chosen is None:
+        raise RuntimeError(f"no feasible street route at {alt_ft} ft")
+    xy, yaw, ev, params = chosen
+    out = path_record(feats, alt_ft, cfg, "street", params, xy, yaw, t, ev, obs, cam,
+                      {"candidates": len(cands), "survivors": None, "tie_break_order": order,
+                       "windows_tried": tried, "network_nodes": int(len(net.nodes))})
+    out["variant"] = "street"
+    return out
+
+
+def path_record(feats, alt_ft, cfg, kind, params, xy, yaw, t, ev, obs, cam, planner: dict) -> dict:
+    alt = altitude_m(alt_ft)
+    fps = float(cfg["clip"]["fps"])
+    n = len(t)
+    near = [f for f in feats if shape(f["geometry"]).distance(Point(0, 0)) <= float(cfg["paths"]["taller_share_radius_m"])]
     taller = sum(f["properties"]["height_m"] > alt for f in near)
     frames = []
     for i in range(n):
@@ -254,15 +444,15 @@ def plan(feats: list[dict], alt_ft: float, cfg: dict) -> dict:
         frames.append({"index": i, "t": float(t[i]), "position": [float(xy[i, 0]), float(xy[i, 1]), alt],
                        "yaw_deg": float(yaw[i]), "camera_to_world": m.tolist()})
     return {
-        "altitude_ft": float(alt_ft), "altitude_m": alt, "speed_mps": speed if kind != "hover_pan" else 0.0,
+        "altitude_ft": float(alt_ft), "altitude_m": alt,
+        "speed_mps": float(cfg["speed_mps"][int(alt_ft)]) if kind != "hover_pan" else 0.0,
         "path_type": kind, "path_params": params,
-        "clip": {"frames": n, "fps": float(cfg["clip"]["fps"]), "duration_s": n / float(cfg["clip"]["fps"])},
+        "clip": {"frames": n, "fps": fps, "duration_s": n / fps},
         "intrinsics": cam.intrinsics(),
         "conventions": {"units": "metres", "axes": "x east, y north, z up",
                         "camera_to_world": "column-vector 4x4; camera +X right, +Y up, looks along -Z",
                         "yaw_deg": "view heading on the ground, counter-clockwise from +x"},
-        "planner": {"candidates": n_candidates, "survivors": len(survivors), "tie_break_order": order,
-                    "min_clearance_m": ev["min_clearance_m"],
+        "planner": {**planner, "min_clearance_m": ev["min_clearance_m"],
                     "target_visible_frames": ev["target_visible_frames"],
                     "obstacle_buildings": len(obs.tall), "grid_res_m": obs.res},
         "taller_share_within_300m": (taller / len(near)) if near else 0.0,
@@ -272,21 +462,22 @@ def plan(feats: list[dict], alt_ft: float, cfg: dict) -> dict:
     }
 
 
-def path_file(sdir: Path, alt_ft) -> Path:
-    return sdir / f"path_{int(alt_ft)}.json"
+def path_file(sdir: Path, alt_ft, variant: str | None = None, view: str | None = None) -> Path:
+    return sdir / f"path_{int(alt_ft)}{variant_suffix(variant, view)}.json"
 
 
-def run_stage4(location: str, cfg: dict, out_dir: Path | None = None) -> list[Path]:
+def run_stage4(location: str, cfg: dict, out_dir: Path | None = None, variant: str | None = None,
+               view: str | None = None, altitudes=None) -> list[Path]:
     slug = slugify(location)
     sdir = out_dir or scene_dir(cfg, slug)
     feats = json.loads((scene_dir(cfg, slug) / "buildings.geojson").read_text())["features"]
     outs = []
-    for alt_ft in cfg["altitudes_ft"]:
-        p = plan(feats, alt_ft, cfg)
+    for alt_ft in altitudes or cfg["altitudes_ft"]:
+        p = plan_street(feats, alt_ft, cfg) if variant == "street" else plan(feats, alt_ft, cfg)
         p["location"] = slug
-        out = path_file(sdir, alt_ft)
+        out = path_file(sdir, alt_ft, variant, view)
         out.write_text(json.dumps(p, indent=1) + "\n")
-        log.info("%s ft: %s %s, clearance %.1f m, target visible %d/%d frames, %d/%d candidates survive",
+        log.info("%s ft: %s %s, clearance %.1f m, target visible %d/%d frames, %s/%d candidates survive",
                  alt_ft, p["path_type"], p["path_params"], p["planner"]["min_clearance_m"],
                  p["planner"]["target_visible_frames"], p["clip"]["frames"],
                  p["planner"]["survivors"], p["planner"]["candidates"])
@@ -298,9 +489,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Stage 4: drone camera paths")
     ap.add_argument("--location", required=True)
     ap.add_argument("--config", default=None)
+    ap.add_argument("--variant", default=None, choices=["street"],
+                    help="street: clip following the street corridors")
+    ap.add_argument("--altitude", type=int, action="append", help="limit to this altitude in feet; repeatable")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    run_stage4(a.location, load_config(a.config))
+    run_stage4(a.location, load_config(a.config), variant=a.variant, altitudes=a.altitude)
 
 
 if __name__ == "__main__":

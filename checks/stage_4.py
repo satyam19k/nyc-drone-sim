@@ -12,7 +12,7 @@ from shapely.geometry import shape
 
 from _checks import REPO_ROOT, CheckList
 
-from nyc_drone_sim.common import altitude_m, load_config, scene_dir, slugify
+from nyc_drone_sim.common import altitude_m, clip_settings, load_config, scene_dir, slugify, variant_suffix
 from nyc_drone_sim.paths import path_file
 
 
@@ -64,14 +64,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--location", default="120 Broadway")
     ap.add_argument("--config", default=None)
+    ap.add_argument("--variant", default=None, choices=["street"])
+    ap.add_argument("--altitude", type=int, action="append")
     a = ap.parse_args()
     cfg = load_config(a.config)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
-    g = CheckList(4, slug)
+    g = CheckList(4, slug, a.variant)
+    if a.altitude:
+        cfg = {**cfg, "altitudes_ft": a.altitude}
+    want_frames, want_fps = clip_settings(cfg, a.variant)
     R = float(cfg["scene_radius_m"])
     alts = [altitude_m(x) for x in cfg["altitudes_ft"]]
-    paths = {int(x): json.loads(path_file(sdir, x).read_text()) for x in cfg["altitudes_ft"]}
+    paths = {int(x): json.loads(path_file(sdir, x, a.variant).read_text()) for x in cfg["altitudes_ft"]}
     M = {k: np.array([f["camera_to_world"] for f in p["frames"]]) for k, p in paths.items()}
     P = {k: np.array([f["position"] for f in p["frames"]]) for k, p in paths.items()}
     T = {k: np.array([f["t"] for f in p["frames"]]) for k, p in paths.items()}
@@ -129,9 +134,9 @@ def main():
         for k, p in paths.items():
             n, fps = len(p["frames"]), 1.0 / np.diff(T[k]).mean()
             dur = n / fps
-            good = (n == cfg["clip"]["frames"] and abs(fps - cfg["clip"]["fps"]) < 1e-9
-                    and np.allclose(np.diff(T[k]), 1 / cfg["clip"]["fps"])
-                    and abs(dur - cfg["clip"]["frames"] / cfg["clip"]["fps"]) < 1e-9
+            good = (n == want_frames and abs(fps - want_fps) < 1e-9
+                    and np.allclose(np.diff(T[k]), 1 / want_fps)
+                    and abs(dur - want_frames / want_fps) < 1e-9
                     and abs(p["clip"]["duration_s"] - dur) < 1e-9)
             ok &= good
             det.append(f"{k} ft: {n} frames at {fps:.3f} fps, {dur:.4f} s")
@@ -213,12 +218,14 @@ def main():
             lim = max(350.0, float(np.abs(P[k][:, :2]).max()) + 100)
             lim = max(lim, max(float(np.abs(corner_hits(m, p["intrinsics"])).max()) for m in (M[k][0], M[k][-1])) + 30)
             ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim); ax.set_aspect("equal")
-            ax.set_title(f"{k} ft ({alt:.2f} m): {p['path_type']} {p['path_params']}\n"
+            params = ", ".join(f"{a_}={[round(x) for x in v] if isinstance(v, list) else round(v, 1) if isinstance(v, float) else v}"
+                               for a_, v in p["path_params"].items())
+            ax.set_title(f"{k} ft ({alt:.2f} m): {p['path_type']}, {params}\n"
                          f"red = taller than the altitude ({p['taller_count_within_300m']} of "
                          f"{p['buildings_within_300m']} within 300 m)")
             ax.set_xlabel("x east (m)"); ax.set_ylabel("y north (m)")
             ax.legend(loc="upper right")
-        out = REPO_ROOT / "evidence" / f"stage_4_{slug}.png"
+        out = REPO_ROOT / "evidence" / f"stage_4_{slug}{variant_suffix(a.variant)}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
         return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"

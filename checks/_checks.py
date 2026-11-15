@@ -11,8 +11,8 @@ sys.path.insert(0, str(REPO_ROOT))
 
 
 class CheckList:
-    def __init__(self, stage: int, location: str):
-        self.stage, self.location = stage, location
+    def __init__(self, stage: int, location: str, variant: str | None = None):
+        self.stage, self.location, self.variant = stage, location, variant
         self.results: list[dict] = []
 
     def check(self, gid: str, ok: bool, detail, warn: bool = False):
@@ -34,11 +34,13 @@ class CheckList:
         passed = all(r["status"] != "FAIL" for r in self.results)
         rep = {
             "stage": self.stage, "location": self.location, "passed": passed,
+            **({"variant": self.variant} if self.variant else {}),
             "utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "checks": self.results,
         }
-        out = REPO_ROOT / "reports" / f"stage_{self.stage}.json"
+        stem = f"stage_{self.stage}" if isinstance(self.stage, int) else str(self.stage)
+        out = REPO_ROOT / "reports" / f"{stem}{'_' + self.variant if self.variant else ''}.json"
         out.parent.mkdir(exist_ok=True)
         out.write_text(json.dumps(rep, indent=1, default=str) + "\n")
-        print(f"stage {self.stage}: {'PASSED' if passed else 'FAILED'} -> {out}")
+        print(f"{stem.replace('_', ' ')}: {'PASSED' if passed else 'FAILED'} -> {out}")
         return 0 if passed else 1

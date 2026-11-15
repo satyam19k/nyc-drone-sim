@@ -1,0 +1,54 @@
+{
+ "stage": 5,
+ "location": "120-broadway",
+ "passed": false,
+ "variant": "street",
+ "utc": "2026-11-14T20:48:30+00:00",
+ "checks": [
+  {
+   "id": "G5.1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 640 PNGs at 1280x720; 5 MP4s at 640 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 640 PNGs at 1280x720; 5 MP4s at 640 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "G5.2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 640 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 640 frames"
+  },
+  {
+   "id": "G5.3",
+   "status": "PASS",
+   "detail": "150 ft: 640 frames with ground at centre, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: 343 frames with ground at centre, centre depth 215.53 m (expected 215.5), worst altitude error 0.000%"
+  },
+  {
+   "id": "G5.4",
+   "status": "PASS",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0"
+  },
+  {
+   "id": "G5.5",
+   "status": "FAIL",
+   "detail": "150 ft: frame-to-frame mean abs difference min 0.461, mean 1.724, max 4.669 (4-sigma limit 4.420); 500 ft: frame-to-frame mean abs difference min 0.994, mean 2.159, max 4.553 (4-sigma limit 4.697)"
+  },
+  {
+   "id": "G5.6",
+   "status": "PASS",
+   "detail": "150 ft: building share per frame min 19.4%, mean 47.0%, max 66.5%; 0 frames outside 5-95%; 500 ft: building share per frame min 47.9%, mean 80.6%, max 94.8%; 0 frames outside 5-95%"
+  },
+  {
+   "id": "G5.7",
+   "status": "PASS",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 46.83 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 46.83 dB"
+  },
+  {
+   "id": "G5.8",
+   "status": "PASS",
+   "detail": "evidence/stage_5_120-broadway_150_street.png (272497 bytes); evidence/stage_5_120-broadway_500_street.png (413444 bytes)"
+  },
+  {
+   "id": "G5.9",
+   "status": "PASS",
+   "detail": "150 ft: colourised depth grey levels p1 80 to p99 148 (range 68, need >= 64); 500 ft: colourised depth grey levels p1 24 to p99 126 (range 102, need >= 64)"
+  }
+ ]
+}

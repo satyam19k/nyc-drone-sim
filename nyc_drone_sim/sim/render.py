@@ -1,6 +1,7 @@
 """Stage 5: render one clip bundle for one location and altitude. GPU, headless.
 
-The camera is driven per frame from path_<altitude>.json; the timeline is not used to move it.
+The camera is driven per frame from path_<altitude>.json (path_<altitude>_street.json with
+--variant street); the timeline is not used to move it.
 Layout written under runs/<run_id>/<location>/<altitude_ft>/:
   clip_0000/{rgb,depth,segmentation,shaded_seg,edges}/ + one MP4 each   (CosmosWriter)
   metric_depth/  camera/  semantic/  rerender_frame0.npz  path.json  bundle.json
@@ -20,6 +21,7 @@ ap.add_argument("--location", default="120 Broadway")
 ap.add_argument("--altitude", type=int, required=True)
 ap.add_argument("--run", required=True)
 ap.add_argument("--config", default=None)
+ap.add_argument("--variant", default=None, choices=["street"])
 args, _ = ap.parse_known_args()
 
 # SimulationApp must exist before any other Omniverse import.
@@ -33,7 +35,7 @@ import omni.timeline  # noqa: E402
 import omni.usd  # noqa: E402
 from pxr import Gf, UsdGeom  # noqa: E402
 
-from nyc_drone_sim.common import REPO_ROOT, load_config, scene_dir, slugify  # noqa: E402
+from nyc_drone_sim.common import REPO_ROOT, load_config, scene_dir, slugify, variant_suffix  # noqa: E402
 
 from omni.replicator.core.scripts.writers_default.cosmos import CosmosWriter  # noqa: E402
 
@@ -80,7 +82,7 @@ def main():
     slug = slugify(args.location)
     sdir = scene_dir(cfg, slug)
     rc, cc = cfg["render"], cfg["camera"]
-    path_src = sdir / f"path_{args.altitude}.json"
+    path_src = sdir / f"path_{args.altitude}{variant_suffix(args.variant)}.json"
     path = json.loads(path_src.read_text())
     frames = path["frames"]
     fps = float(cfg["clip"]["fps"])
@@ -188,7 +190,7 @@ def main():
                           "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.strip()
     import importlib.metadata as md
     (out / "bundle.json").write_text(json.dumps({
-        "location": slug, "run_id": args.run,
+        "location": slug, "run_id": args.run, "variant": args.variant or "default",
         "origin": json.loads((sdir / "scene_meta.json").read_text())["origin"],
         "altitude_ft": args.altitude, "altitude_m": path["altitude_m"],
         "path_type": path["path_type"], "path_params": path["path_params"],

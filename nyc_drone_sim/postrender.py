@@ -8,7 +8,7 @@ import logging
 import subprocess
 from pathlib import Path
 
-from .common import REPO_ROOT, load_config, slugify
+from .common import REPO_ROOT, clip_settings, load_config, slugify
 
 log = logging.getLogger("postrender")
 MODALITIES = ("rgb", "depth", "segmentation", "shaded_seg", "edges")
@@ -38,8 +38,8 @@ def bundle_dir(cfg: dict, run_id: str, slug: str, alt_ft) -> Path:
     return REPO_ROOT / cfg["output"]["runs_dir"] / run_id / slug / str(int(alt_ft))
 
 
-def fix_bundle(bdir: Path, cfg: dict) -> dict:
-    frames, fps = int(cfg["clip"]["frames"]), float(cfg["clip"]["fps"])
+def fix_bundle(bdir: Path, cfg: dict, variant: str | None = None) -> dict:
+    frames, fps = clip_settings(cfg, variant)
     report = {}
     for k in MODALITIES:
         mp4 = bdir / "clip_0000" / f"{k}.mp4"
@@ -63,9 +63,10 @@ if __name__ == "__main__":
     ap.add_argument("--location", required=True)
     ap.add_argument("--run", required=True)
     ap.add_argument("--config", default=None)
+    ap.add_argument("--variant", default=None, choices=["street"])
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
     cfg = load_config(a.config)
     for alt in cfg["altitudes_ft"]:
-        r = fix_bundle(bundle_dir(cfg, a.run, slugify(a.location), alt), cfg)
+        r = fix_bundle(bundle_dir(cfg, a.run, slugify(a.location), alt), cfg, a.variant)
         log.info("%s ft: %s", alt, {k: (v["frames"], v["fps"], "re-encoded" if v["re_encoded"] else "as written") for k, v in r.items()})

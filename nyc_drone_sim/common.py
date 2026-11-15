@@ -29,3 +29,14 @@ def scene_dir(cfg: dict, location_slug: str) -> Path:
 
 def altitude_m(alt_ft: float) -> float:
     return float(alt_ft) * FT_TO_M
+
+
+def clip_settings(cfg: dict, variant: str | None = None) -> tuple[int, float]:
+    """(frames, fps) for the default clip or for a named path variant such as "street"."""
+    frames = cfg[variant]["frames"] if variant else cfg["clip"]["frames"]
+    return int(frames), float(cfg["clip"]["fps"])
+
+
+def variant_suffix(variant: str | None, view: str | None = None) -> str:
+    """File-name suffix for a path variant, and for one named camera view of a place."""
+    return (f"_{variant}" if variant else "") + (f"_{view}" if view else "")

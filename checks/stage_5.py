@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import math
 import sys
@@ -11,7 +12,7 @@ from PIL import Image
 
 from _checks import REPO_ROOT, CheckList
 
-from nyc_drone_sim.common import altitude_m, load_config, slugify
+from nyc_drone_sim.common import altitude_m, clip_settings, load_config, slugify, variant_suffix
 from nyc_drone_sim.postrender import MODALITIES, bundle_dir, probe
 
 
@@ -20,11 +21,12 @@ def main():
     ap.add_argument("--location", default="120 Broadway")
     ap.add_argument("--run", required=True)
     ap.add_argument("--config", default=None)
+    ap.add_argument("--variant", default=None, choices=["street"])
     a = ap.parse_args()
     cfg = load_config(a.config)
     slug = slugify(a.location)
-    g = CheckList(5, slug)
-    n, fps = int(cfg["clip"]["frames"]), float(cfg["clip"]["fps"])
+    g = CheckList(5, slug, a.variant)
+    n, fps = clip_settings(cfg, a.variant)
     W, H = (int(v) for v in cfg["camera"]["resolution"])
     alts = [int(x) for x in cfg["altitudes_ft"]]
     B = {k: bundle_dir(cfg, a.run, slug, k) for k in alts}
@@ -34,12 +36,9 @@ def main():
     def label_ids(k):
         return {v["class"]: int(i) for i, v in bundle[k]["semantic_info"]["idToLabels"].items()}
 
-    sem_cache = {}
-
+    @functools.lru_cache(maxsize=200)    # bounded, so long clips do not fill memory
     def sem(k, i):
-        if (k, i) not in sem_cache:
-            sem_cache[(k, i)] = np.load(B[k] / "semantic" / f"semantic_{i:04d}.npz")["data"]
-        return sem_cache[(k, i)]
+        return np.load(B[k] / "semantic" / f"semantic_{i:04d}.npz")["data"]
 
     def g51():
         det, ok = [], True
@@ -168,7 +167,9 @@ def main():
         det, ok = [], True
         cols = ("rgb", "depth", "segmentation", "edges")
         for k in alts:
-            fr = [int(v) for v in cfg["render"]["evidence_frames"]]
+            # the default clip uses the configured frames; other variants use four evenly spaced ones
+            fr = ([int(v) for v in cfg["render"]["evidence_frames"]] if not a.variant
+                  else [int(round(v)) for v in np.linspace(0, n - 1, 4)])
             fig, ax = plt.subplots(len(fr), len(cols), figsize=(4.6 * len(cols), 2.7 * len(fr)), dpi=110)
             for r, i in enumerate(fr):
                 for c, m in enumerate(cols):
@@ -176,7 +177,7 @@ def main():
                     ax[r, c].axis("off")
                     ax[r, c].set_title(f"{m}, frame {i}", fontsize=9)
             fig.suptitle(f"{slug} at {k} ft: {bundle[k]['path_type']} {bundle[k]['path_params']}", fontsize=11)
-            out = REPO_ROOT / "evidence" / f"stage_5_{slug}_{k}.png"
+            out = REPO_ROOT / "evidence" / f"stage_5_{slug}_{k}{variant_suffix(a.variant)}.png"
             fig.savefig(out, bbox_inches="tight")
             plt.close(fig)
             ok &= out.stat().st_size > 10_000
