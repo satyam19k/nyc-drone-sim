@@ -42,12 +42,43 @@ scene:
   ground_side_factor: 4
   sun_intensity: 3000
   sun_angle_deg: 0.53
-  sun_elevation_deg: 55
+  sun_elevation_deg: 40          # lowered from 55 so trees and vehicles cast readable shadows
+  sun_elevation_before_deg: 55   # only used to render the before picture of that change
   sun_azimuth_deg: 135
   dome_intensity: 800
   ground_color: [0.35, 0.35, 0.33]
   building_color_base: [0.62, 0.60, 0.57]
   building_color_jitter: 0.12
+  # Building appearance only: window grid on walls, separate roof material. Geometry is unchanged.
+  facade:
+    enabled: true
+    bay_m: 3.2
+    floor_m: 3.6
+    roof_tile_m: 4.0
+    tile_px: 64
+    glass_above_m: 60
+    wall_tints: [[1.0, 0.98, 0.94], [0.92, 0.84, 0.74], [0.8, 0.62, 0.5], [0.72, 0.74, 0.78], [0.62, 0.56, 0.5], [0.95, 0.93, 0.9]]
+    roof_colors: [[0.13, 0.13, 0.14], [0.3, 0.3, 0.3], [0.42, 0.38, 0.32], [0.55, 0.55, 0.54], [0.2, 0.17, 0.15]]
+  # classes that lie on the ground plane; a "ground" expectation in the checks accepts any of them
+  flat_classes: [ground, road, sidewalk, median, plaza, parking, pier, boardwalk, park, lawn, path, water, road_marking]
+  # street surfaces (linear RGB)
+  surface_colors:
+    road: [0.085, 0.085, 0.09]
+    sidewalk: [0.3, 0.295, 0.28]
+    median: [0.27, 0.27, 0.255]
+    plaza: [0.34, 0.31, 0.27]
+    pier: [0.3, 0.27, 0.22]
+    boardwalk: [0.28, 0.2, 0.13]
+    parking: [0.11, 0.11, 0.115]
+    park: [0.1, 0.22, 0.07]
+    lawn: [0.09, 0.2, 0.06]
+    path: [0.33, 0.29, 0.23]
+    water: [0.03, 0.08, 0.12]
+  surface_roughness: {road: 0.85, water: 0.4}    # water at 0.15 gave a blown-out sun glint
+  marking_colors:
+    crosswalk: [0.8, 0.8, 0.78]
+    lane_line: [0.8, 0.8, 0.78]
+    centre_line: [0.75, 0.55, 0.05]
 
 # Stage 4: camera paths
 paths:
@@ -82,6 +113,7 @@ street:
 probe:
   ground_free_radius_m: 30
   ground_search_step_m: 2
+  ground_object_clear_m: 3     # the ground probe also stays this far from any placed object
   roof_inset_m: 5
   roof_height_range_m: [10, 100]
   roof_camera_above_m: 50
@@ -101,3 +133,224 @@ render:
   depth_colorize_near_m: 5
   depth_colorize_far_m: 500
   depth_min_grey_range: 64
+  # recorded motion is applied to objects within altitude * per_altitude + base of the camera
+  motion_radius_per_altitude: 3.2
+  motion_radius_base_m: 110
+
+# Model library for populating the scene (converted from data/assets/valdrada)
+assets:
+  source_dir: data/assets/valdrada
+  source_revision: v0.7.1
+  library_dir: data/assets/usd
+  vehicle_lod: 1
+  pedestrian_lod: 2
+  pedestrian_models: 12
+  arm_angle_deg: 8
+  tree_level: w1
+  leaf_cutout: 0.4
+  # paints are linear RGB; one model file is written per paint
+  vehicles:
+    taxi:     {group: taxi,  paints: [[0.83, 0.56, 0.02]]}
+    impala:   {group: car,   paints: [[0.75, 0.75, 0.75], [0.02, 0.02, 0.02], [0.25, 0.03, 0.03]]}
+    lincoln:  {group: car,   paints: [[0.02, 0.02, 0.02], [0.35, 0.36, 0.38]]}
+    mercedes: {group: car,   paints: [[0.35, 0.36, 0.38], [0.75, 0.75, 0.75], [0.03, 0.07, 0.2]]}
+    model3:   {group: car,   paints: [[0.75, 0.75, 0.75], [0.1, 0.1, 0.11], [0.03, 0.07, 0.2]]}
+    charger:  {group: car,   paints: [[0.1, 0.1, 0.11], [0.35, 0.36, 0.38]]}
+    mini:     {group: car,   paints: [[0.25, 0.03, 0.03], [0.75, 0.75, 0.75]]}
+    auditt:   {group: car,   paints: [[0.35, 0.36, 0.38], [0.02, 0.02, 0.02]]}
+    suv:      {group: car,   paints: [[0.02, 0.02, 0.02], [0.75, 0.75, 0.75], [0.1, 0.1, 0.11]]}
+    van:      {group: van,   paints: [[0.8, 0.8, 0.8], [0.35, 0.36, 0.38]]}
+    cargovan: {group: van,   paints: [[0.8, 0.8, 0.8]]}
+    stepvan:  {group: van,   paints: [[0.25, 0.14, 0.06], [0.8, 0.8, 0.8]]}
+    uspsllv:  {group: van,   paints: [[0.8, 0.8, 0.8]]}
+    boxtruck: {group: truck, paints: [[0.8, 0.8, 0.8], [0.6, 0.45, 0.1]]}
+    dsny:     {group: truck, paints: [[0.8, 0.8, 0.8]]}
+    mtaxd40:  {group: bus,   paints: [[0.8, 0.8, 0.82]]}
+    mtalfs:   {group: bus,   paints: [[0.8, 0.8, 0.82]]}
+    nypd:     {group: car,   paints: [[0.8, 0.8, 0.8]]}
+
+# Street-level layers from NYC Open Data (same projection, cache and paging as the buildings)
+layers:
+  resource_url: https://data.cityofnewyork.us/resource/
+  min_area_m2: 1.0
+  off_grade_buffer_m: 10       # a road piece mostly within this of a tunnel, viaduct or ramp centre line ...
+  off_grade_share_drop: 0.6    # ... (this share of its area) ...
+  at_grade_share_keep: 0.4     # ... and not this much within reach of a ground-level street, is dropped
+  covered_share_drop: 0.9      # a surface piece this far under a building is inside a structure: dropped
+  water_fill_close_m: 40       # gaps in the land narrower than twice this are not treated as water
+  water_fill_min_m2: 2000
+  park: {min_area_m2: 1500, path_width_m: 3.0, edge_inset_m: 6.0, spokes: 5}   # rule for park paths
+  # The planimetric layers, hydrants and bike racks are published in NAD83; buildings, tree points
+  # and centre lines are in WGS84. Layers marked `datum: nad83` get this transformation first.
+  nad83_to_wgs84: ["EPSG:6318", "EPSG:7912"]
+  # where layers overlap, the earlier class wins
+  # Piers and boardwalks are decks over the water. Any other surface mapped over the water polygon
+  # is a bridge, ramp or gangway above it; the scene is flat, so there the water wins.
+  surface_order: [pier, boardwalk, water, road, median, sidewalk, plaza, parking, park]
+  surfaces:
+    - {dataset: i36f-5ih7, class: road, datum: nad83}       # Planimetric: Roadbed
+    - {dataset: ees7-4ufv, class: median, datum: nad83}     # Planimetric: Median
+    - {dataset: 52n9-sdep, class: sidewalk, datum: nad83}   # Planimetric: Sidewalk
+    - {dataset: ue2e-9jm2, class: plaza, datum: nad83}      # Planimetric: Public Plazas
+    - {dataset: 7cgt-uhhz, class: parking, datum: nad83}    # Planimetric: Parking Lot
+    - {dataset: 6hbv-tek4, class: pier, datum: nad83}       # Planimetric: Hydrography Structures
+    - {dataset: p9cw-7gsv, class: boardwalk, datum: nad83}  # Planimetric: Boardwalk
+    - {dataset: y6ja-fw4f, class: park, datum: nad83}       # Planimetric: Open Space (Parks)
+    - {dataset: pjs3-c3z5, class: water, datum: nad83}      # Planimetric: Hydrography
+  elevated:
+    - {dataset: r9cu-9r7b, datum: nad83}                    # Planimetric: Transportation Structures
+  centerline: {dataset: inkn-q76z}
+  trees:
+    dataset: hn5i-inap                        # Forestry Tree Points
+    geom: location
+    keep_structure: [Full]
+    drop_condition: [Dead]
+  furniture:
+    - {dataset: 5bgh-vtsn, kind: hydrant, geom: the_geom, id_fields: [unitid], datum: nad83}
+    - {dataset: t4f2-8md7, kind: bus_shelter, geom: location1, id_fields: [shelter_id]}
+    - {dataset: 592z-n7dk, kind: bike_rack, geom: the_geom, id_fields: [site_id], datum: nad83}
+    - {dataset: s4kf-3yrf, kind: kiosk, id_fields: [link_site_id], where: "link_installation_status = 'Live'"}
+
+# Named places: an origin and either a circle or a corridor around a camera ground track
+places:
+  lower-manhattan-waterfront: {origin: [40.7105, -74.0150], radius_m: 1900}
+  # Chosen from the scout scores. buffer_m = farthest visible ground at 500 ft (468 m) + route.margin_m.
+  rockefeller-park-transect:
+    origin: [40.717704, -74.019261]
+    route_m: [[-260.0, 0.0], [260.0, 0.0]]
+    buffer_m: 768
+    yaw_offset_deg: 0
+    focus: {150: 0.72, 500: 0.5}
+    motion_frames: 480
+    # more camera views of the same scene; each must keep its ground footprint inside the corridor
+    views:
+      reverse:   {route_m: [[260.0, 0.0], [-260.0, 0.0]], yaw_offset_deg: 0, focus: {150: 0.28, 500: 0.5}}
+      esplanade: {route_m: [[145.0, -350.0], [155.0, -200.0], [175.0, 0.0], [195.0, 100.0]], yaw_offset_deg: -25, focus: {150: 0.6, 500: 0.5}}
+      oblique:   {route_m: [[-260.0, 0.0], [260.0, 0.0]], yaw_offset_deg: 40, focus: {150: 0.72, 500: 0.5}}
+  battery-shoreline:
+    origin: [40.702395, -74.016420]
+    route_m: [[-210.0, 260.0], [-130.0, 100.0], [-30.0, -60.0], [100.0, -160.0], [240.0, -190.0]]
+    buffer_m: 768
+    yaw_offset_deg: 25
+    focus: {150: 0.5, 500: 0.5}
+    motion_frames: 480
+    views:
+      transect:  {route_m: [[-210.0, -230.0], [160.0, 210.0]], yaw_offset_deg: 0, focus: {150: 0.72, 500: 0.45}}
+      reverse:   {route_m: [[240.0, -190.0], [100.0, -160.0], [-30.0, -60.0], [-130.0, 100.0], [-210.0, 260.0]], yaw_offset_deg: -25, focus: {150: 0.5, 500: 0.5}}
+      seaward:   {route_m: [[-210.0, 260.0], [-130.0, 100.0], [-30.0, -60.0], [100.0, -160.0], [240.0, -190.0]], yaw_offset_deg: -30, focus: {150: 0.5, 500: 0.5}}
+  hudson-park-run:
+    origin: [40.719955, -74.012988]
+    route_m: [[-45.0, -290.0], [-20.0, -150.0], [0.0, 0.0], [25.0, 150.0], [45.0, 280.0]]
+    buffer_m: 768
+    yaw_offset_deg: -15
+    focus: {150: 0.5, 500: 0.5}
+    motion_frames: 480
+    views:
+      reverse:   {route_m: [[45.0, 280.0], [25.0, 150.0], [0.0, 0.0], [-20.0, -150.0], [-45.0, -290.0]], yaw_offset_deg: 15, focus: {150: 0.5, 500: 0.5}}
+  esplanade-run:
+    origin: [40.712301, -74.018314]
+    route_m: [[-40.0, -300.0], [-20.0, -200.0], [0.0, -50.0], [35.0, 200.0], [50.0, 300.0]]
+    buffer_m: 768
+    yaw_offset_deg: -20
+    focus: {150: 0.5, 500: 0.5}
+    motion_frames: 480
+    views:
+      inland:    {route_m: [[-40.0, -300.0], [-20.0, -200.0], [0.0, -50.0], [35.0, 200.0], [50.0, 300.0]], yaw_offset_deg: -55, focus: {150: 0.5, 500: 0.5}}
+
+# Long clips along a place's route (path variant "long")
+long:
+  frames: 480
+route:
+  smooth_sigma_m: 20
+  yaw_sigma_m: 40
+  dense_step_m: 0.5
+  margin_m: 300                # extent = route buffered by the farthest visible ground plus this
+
+# Candidate camera routes scored on the survey place before anything is rendered. Routes are
+# camera ground tracks in local metres from the survey origin, in the direction of travel.
+scout:
+  place: lower-manhattan-waterfront
+  sample_every: 8
+  nongrade_buffer_m: 8
+  candidates:
+    battery-transect:   {kind: transect,  route_m: [[-330, -1130], [40, -690]], yaw_offset_deg: 0, focus: {150: 0.72, 500: 0.45}}
+    wagner-transect:    {kind: transect,  route_m: [[-560, -700], [40, -700]], yaw_offset_deg: 0, focus: {150: 0.7, 500: 0.5}}
+    rockefeller-transect: {kind: transect, route_m: [[-620, 800], [-100, 800]], yaw_offset_deg: 0, focus: {150: 0.72, 500: 0.5}}
+    esplanade-run:      {kind: shoreline, route_m: [[-375, -450], [-335, -200], [-300, 0], [-280, 150], [-245, 400], [-215, 600], [-190, 800]], yaw_offset_deg: -20, focus: {150: 0.5, 500: 0.5}}
+    hudson-park-run:    {kind: shoreline, route_m: [[125, 760], [150, 900], [170, 1050], [195, 1200], [215, 1330]], yaw_offset_deg: -15, focus: {150: 0.5, 500: 0.5}}
+    battery-shore-run:  {kind: shoreline, route_m: [[-330, -640], [-250, -800], [-150, -960], [-20, -1060], [120, -1090]], yaw_offset_deg: 25, focus: {150: 0.5, 500: 0.5}}
+
+# Placement rules for the populated scene. All sizes in metres, speeds in m/s.
+populate:
+  enabled: true
+  instancing: instanceable     # reference | instanceable
+  frames: 640                  # recorded motion is authored for this many frames at clip.fps
+  drivable_rw_types: [1, 2]    # centre-line roadway types that carry vehicles (1 = street, 2 = highway)
+  ground_level_code: 13        # centre-line level code for ground level; other levels carry nothing
+  cross_section_step_m: 6
+  max_half_width_m: 40
+  intersection_margin_m: 12    # keep parked vehicles and lane paint this far from segment ends
+  vehicles:
+    group_weights: {car: 0.62, taxi: 0.16, van: 0.12, truck: 0.05, bus: 0.05}
+    parked_groups: [car, taxi, van]
+    kerb_gap_m: 0.3
+    parked_gap_m: [0.6, 1.6]
+    parked_occupancy: 0.7
+    park_lane_width_m: 2.6
+    lot_occupancy: 0.6
+    lot_slot_m: [2.9, 5.8]
+    min_lane_width_m: 2.7
+    moving_spacing_m: 38       # mean distance between moving vehicles in one lane
+    arterial_lanes: 3          # a street with this many travel lanes is an arterial ...
+    arterial_spacing_m: 20     # ... and carries denser traffic in each lane
+    speed_factor: 0.6          # share of the posted speed actually driven
+    default_speed_mph: 25
+    chain_max_bend_deg: 20
+    lane_shift_max_m: 4.0      # a route may move this far sideways from one segment to the next
+    lane_change_sigma_m: 5.0   # smoothing of that sideways move, along the route
+    stop_margin_m: 9           # no vehicle comes nearer than this to the end of its route
+    queue_gap_m: 1.8
+    clearance_m: 0.25          # minimum gap between any two vehicle footprints
+    max_street_angle_deg: 9.0  # a moving vehicle stays this close to the direction of the street it is nearest
+    alignment_check_every: 8   # ... tested at every this-many-th frame
+  pedestrians:
+    density_per_m2: 0.012
+    near_intersection_boost: 2.0
+    boost_range_m: 25
+    edge_margin_m: 0.45
+    walking_share: 0.6
+    walk_speed: [1.1, 1.5]
+    track_check_every: 8
+    vehicle_clearance_m: 0.6
+    spacing_m: 0.7
+    surfaces: [sidewalk, plaza, pier, boardwalk, path]
+  trees:
+    crown_per_dbh_cm: 0.19
+    crown_base_m: 1.2
+    crown_range_m: [2.5, 16.0]
+    height_range_m: [3.0, 30.0]
+    young_below_dbh_in: 8
+    kerb_snap_m: 2.0             # a tree recorded this far inside the roadbed is moved onto the kerb
+    kerb_setback_m: 0.4
+    park_trees_per_ha: 70        # lawns with fewer recorded trees than this are filled up by rule
+    park_min_area_m2: 400
+    park_edge_m: 3.0
+    park_tree_spacing_m: 7.0
+    park_tree_scale: [0.75, 1.15]
+    default_dbh_in: 8
+    genus_form: {Gleditsia: H, Platanus: P, Pyrus: R, Zelkova: Z, Tilia: L, Quercus: Q, Acer: M,
+                 Styphnolobium: S, Sophora: S, Prunus: W, Ginkgo: Y}
+  furniture:
+    lamp_spacing_m: 30
+    lamp_setback_m: 0.7
+    signal_setback_m: 1.0
+    snap_m: 1.5
+    surfaces: [sidewalk, plaza, median, park, lawn, path, pier, boardwalk]
+  markings:
+    height_m: 0.02
+    lane_line_width_m: 0.15
+    dash_m: [3.0, 9.0]
+    centre_line_width_m: 0.3
+    crosswalk_bar_m: [0.6, 3.0]   # bar width across the walking direction, bar length along traffic
+    crosswalk_pitch_m: 1.2
+    crosswalk_setback_m: 1.5
