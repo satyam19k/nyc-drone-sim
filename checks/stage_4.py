@@ -8,11 +8,11 @@ import sys
 
 import numpy as np
 from pxr import Usd, UsdGeom
-from shapely.geometry import shape
+from shapely.geometry import Point, shape
 
 from _checks import REPO_ROOT, CheckList
 
-from nyc_drone_sim.common import altitude_m, clip_settings, load_config, scene_dir, slugify, variant_suffix
+from nyc_drone_sim.common import extent_polygon, for_location, altitude_m, clip_settings, load_config, scene_dir, slugify, variant_suffix
 from nyc_drone_sim.paths import path_file
 
 
@@ -64,19 +64,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--location", default="120 Broadway")
     ap.add_argument("--config", default=None)
-    ap.add_argument("--variant", default=None, choices=["street"])
+    ap.add_argument("--variant", default=None, choices=["street", "long"])
+    ap.add_argument("--view", default=None)
     ap.add_argument("--altitude", type=int, action="append")
     a = ap.parse_args()
-    cfg = load_config(a.config)
+    cfg = for_location(load_config(a.config), a.location)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
-    g = CheckList(4, slug, a.variant)
+    g = CheckList(4, slug, "_".join(v for v in (a.variant, a.view) if v) or None)
     if a.altitude:
         cfg = {**cfg, "altitudes_ft": a.altitude}
     want_frames, want_fps = clip_settings(cfg, a.variant)
     R = float(cfg["scene_radius_m"])
+    corridor = extent_polygon(cfg) if cfg.get("corridor") else None
     alts = [altitude_m(x) for x in cfg["altitudes_ft"]]
-    paths = {int(x): json.loads(path_file(sdir, x, a.variant).read_text()) for x in cfg["altitudes_ft"]}
+    paths = {int(x): json.loads(path_file(sdir, x, a.variant, a.view).read_text()) for x in cfg["altitudes_ft"]}
     M = {k: np.array([f["camera_to_world"] for f in p["frames"]]) for k, p in paths.items()}
     P = {k: np.array([f["position"] for f in p["frames"]]) for k, p in paths.items()}
     T = {k: np.array([f["t"] for f in p["frames"]]) for k, p in paths.items()}
@@ -105,12 +107,31 @@ def main():
             A.append(pts[idx[:, 0]]); B.append(pts[idx[:, 1]]); C.append(pts[idx[:, 2]])
         A, B, C = np.vstack(A), np.vstack(B), np.vstack(C)
         need = float(cfg["paths"]["min_surface_distance_m"])
+        # placed models (trees, lamps, vehicles, people): distance to each one's bounding box,
+        # which is never more than the distance to the model itself
+        boxes = []
+        objects = stage.GetPrimAtPath("/World/Objects")
+        if objects.IsValid():
+            cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), [UsdGeom.Tokens.default_])
+            for group in objects.GetChildren():
+                for prim in group.GetChildren():
+                    r = cache.ComputeWorldBound(prim).ComputeAlignedRange()
+                    boxes.append((group.GetName(), *r.GetMin(), *r.GetMax()))
+        lo = np.array([b[1:4] for b in boxes], dtype=np.float64).reshape(-1, 3)
+        hi = np.array([b[4:7] for b in boxes], dtype=np.float64).reshape(-1, 3)
         det, ok = [], True
         for k in paths:
-            dmin = min(point_triangles_distance(p, A, B, C).min() for p in np.unique(P[k], axis=0))
+            pts = np.unique(P[k], axis=0)
+            dmin = min(point_triangles_distance(p, A, B, C).min() for p in pts)
             ok &= dmin >= need
             det.append(f"{k} ft: nearest building surface {dmin:.2f} m")
-        return ok, f"from {len(A)} USD triangles; " + "; ".join(det) + f"; required >= {need:g} m"
+            if len(boxes):
+                d = np.linalg.norm(np.maximum(np.maximum(lo[None] - pts[:, None], pts[:, None] - hi[None]), 0.0), axis=2)
+                j = int(np.argmin(d.min(0)))
+                ok &= float(d.min()) >= need
+                det.append(f"nearest placed model {d.min():.2f} m ({boxes[j][0]}, top at {hi[j][2]:.1f} m)")
+        return ok, (f"from {len(A)} USD triangles and {len(boxes)} placed-model bounding boxes; " + "; ".join(det)
+                    + f"; required >= {need:g} m")
 
     def g43():
         det, ok = [], True
@@ -145,16 +166,24 @@ def main():
     def g45():
         det, ok = [], True
         for k, p in paths.items():
-            far = 0.0
+            far, outside = 0.0, 0.0
             for m in M[k]:
                 h = corner_hits(m, p["intrinsics"])
                 if h is None:
-                    far = float("inf")
+                    far = outside = float("inf")
                     break
                 far = max(far, float(np.hypot(h[:, 0], h[:, 1]).max()))
-            ok &= far <= R
-            det.append(f"{k} ft: farthest corner ground hit {far:.1f} m from origin")
-        return ok, "; ".join(det) + f"; limit {R:g} m"
+                if corridor is not None:
+                    outside = max(outside, max(corridor.distance(Point(*c)) for c in h))
+            if corridor is None:
+                ok &= far <= R
+                det.append(f"{k} ft: farthest corner ground hit {far:.1f} m from origin")
+            else:
+                # a corridor scene: the corners must land inside the corridor itself, a stricter
+                # test than the circle that encloses it
+                ok &= outside == 0.0
+                det.append(f"{k} ft: farthest corner ground hit {far:.1f} m from origin, corners outside the corridor by at most {outside:.1f} m")
+        return ok, "; ".join(det) + (f"; limit {R:g} m" if corridor is None else "; limit: inside the scene corridor")
 
     def target_share(k):
         intr = paths[k]["intrinsics"]
@@ -225,7 +254,7 @@ def main():
                          f"{p['buildings_within_300m']} within 300 m)")
             ax.set_xlabel("x east (m)"); ax.set_ylabel("y north (m)")
             ax.legend(loc="upper right")
-        out = REPO_ROOT / "evidence" / f"stage_4_{slug}{variant_suffix(a.variant)}.png"
+        out = REPO_ROOT / "evidence" / f"stage_4_{slug}{variant_suffix(a.variant, a.view)}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
         return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"

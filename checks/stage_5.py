@@ -12,7 +12,7 @@ from PIL import Image
 
 from _checks import REPO_ROOT, CheckList
 
-from nyc_drone_sim.common import altitude_m, clip_settings, load_config, slugify, variant_suffix
+from nyc_drone_sim.common import for_location, altitude_m, clip_settings, load_config, slugify, variant_suffix
 from nyc_drone_sim.postrender import MODALITIES, bundle_dir, probe
 
 
@@ -21,14 +21,15 @@ def main():
     ap.add_argument("--location", default="120 Broadway")
     ap.add_argument("--run", required=True)
     ap.add_argument("--config", default=None)
-    ap.add_argument("--variant", default=None, choices=["street"])
+    ap.add_argument("--variant", default=None, choices=["street", "long"])
     a = ap.parse_args()
-    cfg = load_config(a.config)
+    cfg = for_location(load_config(a.config), a.location)
     slug = slugify(a.location)
     g = CheckList(5, slug, a.variant)
     n, fps = clip_settings(cfg, a.variant)
     W, H = (int(v) for v in cfg["camera"]["resolution"])
     alts = [int(x) for x in cfg["altitudes_ft"]]
+    flat = set(cfg["scene"]["flat_classes"])
     B = {k: bundle_dir(cfg, a.run, slug, k) for k in alts}
     bundle = {k: json.loads((B[k] / "bundle.json").read_text()) for k in alts}
     path = {k: json.loads((B[k] / "path.json").read_text()) for k in alts}
@@ -75,11 +76,12 @@ def main():
     def g53():
         det, ok, any_ground = [], True, True
         for k in alts:
-            gid = label_ids(k)["ground"]
+            # ground-level classes: plain ground, and in a populated scene road, sidewalk and so on
+            gids = {v for c, v in label_ids(k).items() if c in flat}
             alt = altitude_m(k)
             errs, depths = [], []
             for i in range(n):
-                if sem(k, i)[H // 2, W // 2] != gid:
+                if int(sem(k, i)[H // 2, W // 2]) not in gids:
                     continue
                 d = np.load(B[k] / "metric_depth" / f"depth_{i:04d}.npy")
                 c = float(np.mean(d[H // 2 - 1:H // 2 + 1, W // 2 - 1:W // 2 + 1]))
@@ -133,6 +135,17 @@ def main():
             flag |= out > 0
             det.append(f"{k} ft: building share per frame min {share.min():.1%}, mean {share.mean():.1%}, max {share.max():.1%}; "
                        f"{out} frames outside 5-95%")
+            others = {c: v for c, v in label_ids(k).items() if c not in ("building", "BACKGROUND", "UNLABELLED")}
+            if len(others) > 1:
+                tot = {c: 0.0 for c in others}
+                step = max(1, n // 24)
+                for i in range(0, n, step):
+                    ids, cnt = np.unique(sem(k, i), return_counts=True)
+                    look = dict(zip(ids.tolist(), cnt.tolist()))
+                    for c, v in others.items():
+                        tot[c] += look.get(v, 0) / (W * H)
+                m = len(range(0, n, step))
+                det.append(f"{k} ft mean share of other classes: " + ", ".join(f"{c} {tot[c] / m:.2%}" for c in sorted(tot)))
         return True, "; ".join(det) + ("; flagged for review" if flag else ""), flag
 
     def g57():

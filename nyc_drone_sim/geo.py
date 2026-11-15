@@ -22,7 +22,8 @@ from scipy.spatial import cKDTree
 from shapely.geometry import MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.polygon import orient
 
-from .common import FT_TO_M, REPO_ROOT, load_config, scene_dir, slugify
+from .common import (FT_TO_M, REPO_ROOT, extent_polygon, for_location, load_config, location_query,
+                     scene_dir, slugify)
 
 log = logging.getLogger("stage1")
 
@@ -190,7 +191,7 @@ def normalise(raw: list[dict], loc: dict, cfg: dict) -> tuple[list[dict], dict]:
     fwd = Transformer.from_crs("EPSG:4326", local_proj(loc["lat"], loc["lon"]), always_xy=True)
     R = float(cfg["scene_radius_m"])
     grid = 10.0 ** -int(cfg["data"]["coord_decimals"])
-    circle = Point(0, 0).buffer(R, quad_segs=256)
+    circle = extent_polygon(cfg)
     drop = {int(c) for c in cfg["data"]["drop_feature_codes"]}
     keep_codes = {int(c) for c in cfg["data"]["keep_feature_codes"]}
 
@@ -357,11 +358,12 @@ def plot_footprints(rows: list[dict], loc: dict, R: float, out_png: Path, title:
 def run_stage1(location: str, cfg: dict, out_dir: Path | None = None, offline: bool = False,
                evidence: bool = True) -> Path:
     slug = slugify(location)
+    cfg = for_location(cfg, location)
     out = out_dir or scene_dir(cfg, slug)
     out.mkdir(parents=True, exist_ok=True)
     http = HttpCache(REPO_ROOT / cfg["data"]["cache_dir"], offline=offline,
                      timeout_s=cfg["data"]["http_timeout_s"])
-    loc = geocode(location, cfg, http)
+    loc = geocode(location_query(cfg, location), cfg, http)
     R = float(cfg["scene_radius_m"])
     box = bbox_latlon(loc["lat"], loc["lon"], R + float(cfg["data"]["bbox_margin_m"]))
     where = intersects_box_clause(box)
@@ -375,7 +377,7 @@ def run_stage1(location: str, cfg: dict, out_dir: Path | None = None, offline: b
     (out / "buildings.geojson").write_bytes(to_geojson_bytes(rows))
     location_json = {
         **loc, "slug": slug, "projection": local_proj(loc["lat"], loc["lon"]),
-        "scene_radius_m": R, "bbox": box, "where": where,
+        "scene_radius_m": R, "extent_wkt": extent_polygon(cfg).wkt if cfg.get("corridor") else None, "bbox": box, "where": where,
         "server_count": server_count, "rows_fetched": len(raw),
         "within_box_count": inside_only, **report,
     }

@@ -8,7 +8,7 @@ import logging
 import subprocess
 from pathlib import Path
 
-from .common import REPO_ROOT, clip_settings, load_config, slugify
+from .common import for_location, REPO_ROOT, clip_settings, load_config, slugify
 
 log = logging.getLogger("postrender")
 MODALITIES = ("rgb", "depth", "segmentation", "shaded_seg", "edges")
@@ -63,10 +63,10 @@ if __name__ == "__main__":
     ap.add_argument("--location", required=True)
     ap.add_argument("--run", required=True)
     ap.add_argument("--config", default=None)
-    ap.add_argument("--variant", default=None, choices=["street"])
+    ap.add_argument("--variant", default=None, choices=["street", "long"])
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    cfg = load_config(a.config)
+    cfg = for_location(load_config(a.config), a.location)
     for alt in cfg["altitudes_ft"]:
         r = fix_bundle(bundle_dir(cfg, a.run, slugify(a.location), alt), cfg, a.variant)
         log.info("%s ft: %s", alt, {k: (v["frames"], v["fps"], "re-encoded" if v["re_encoded"] else "as written") for k, v in r.items()})

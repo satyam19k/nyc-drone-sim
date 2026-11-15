@@ -24,7 +24,8 @@ from scipy.sparse import csgraph
 from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
-from .common import REPO_ROOT, altitude_m, clip_settings, load_config, scene_dir, slugify, variant_suffix
+from .common import (REPO_ROOT, altitude_m, clip_settings, extent_polygon, for_location, load_config, scene_dir,
+                     slugify, variant_suffix, view_spec)
 
 log = logging.getLogger("stage4")
 
@@ -432,6 +433,65 @@ def plan_street(feats: list[dict], alt_ft: float, cfg: dict) -> dict:
     return out
 
 
+def route_track(route, speed: float, t: np.ndarray, focus: float, yaw_offset_deg: float, cfg: dict):
+    """Camera ground track along a drawn route: smoothed, constant speed, one clip long.
+
+    The clip is centred on `focus` (0 to 1 along the route). The view heading is the smoothed
+    track heading plus `yaw_offset_deg`, so the camera can look to one side of its travel.
+    """
+    rc = cfg["route"]
+    d, arc, head = smooth_route(np.asarray(route, dtype=np.float64), float(rc["smooth_sigma_m"]),
+                                float(rc["dense_step_m"]), float(rc["yaw_sigma_m"]))
+    need = speed * (t[-1] - t[0])
+    if need > arc[-1]:
+        raise RuntimeError(f"route is {arc[-1]:.0f} m long, the clip needs {need:.0f} m")
+    s0 = float(np.clip(focus * arc[-1] - need / 2, 0.0, arc[-1] - need))
+    s = s0 + speed * (t - t[0])
+    xy = np.column_stack([np.interp(s, arc, d[:, 0]), np.interp(s, arc, d[:, 1])])
+    return xy, np.interp(s, arc, head) + yaw_offset_deg
+
+
+def footprint_inside(xy, yaw, alt, cam: Pinhole, extent) -> bool:
+    """True when the ground footprint of every frame lies inside the scene extent."""
+    import shapely as _sh
+    quads = []
+    for p, y in zip(xy, yaw):
+        g = frustum_ground(camera_to_world([p[0], p[1], alt], float(y), cam.pitch_deg), cam)
+        if g is None:
+            return False
+        quads.append(g)
+    return bool(_sh.covers(extent, _sh.polygons(np.asarray(quads))).all())
+
+
+def plan_route(feats: list[dict], alt_ft: float, cfg: dict, view: str | None = None) -> dict:
+    """The place's configured route, or one of its extra views, flown for one long clip."""
+    place = view_spec(cfg, view)
+    cam = Pinhole(cfg["camera"])
+    alt = altitude_m(alt_ft)
+    speed = float(cfg["speed_mps"][int(alt_ft)])
+    t = frame_times(cfg, "long")
+    obs = Obstacles(feats, alt, cfg)
+    focus = float(place["focus"][int(alt_ft)])
+    xy, yaw = route_track(place["route_m"], speed, t, focus, float(place.get("yaw_offset_deg", 0.0)), cfg)
+    if any(obs.is_blocked(p) for p in xy):
+        raise RuntimeError(f"{alt_ft} ft: the route passes within the clearance of a tall building")
+    if np.abs(np.diff(yaw) / np.diff(t)).max() > float(cfg["paths"]["max_yaw_rate_deg_s"]):
+        raise RuntimeError(f"{alt_ft} ft: the route turns faster than the yaw-rate limit")
+    if not footprint_inside(xy, yaw, alt, cam, extent_polygon(cfg)):
+        raise RuntimeError(f"{alt_ft} ft: a frame's ground footprint leaves the scene extent")
+    visible = 0
+    for p, y in zip(xy, yaw):
+        u, v, front = project(camera_to_world([p[0], p[1], alt], float(y), cam.pitch_deg), cam, (0.0, 0.0, 0.0))
+        visible += int(front and abs(u) <= 1 and abs(v) <= 1)
+    ev = {"min_clearance_m": min(obs.clearance(p) for p in xy), "target_visible_frames": visible}
+    out = path_record(feats, alt_ft, cfg, "route", {"place": place["name"], "view": view or "main", "focus": focus,
+                                                    "yaw_offset_deg": float(place.get("yaw_offset_deg", 0.0)),
+                                                    "from": [float(v) for v in xy[0]], "to": [float(v) for v in xy[-1]]},
+                      xy, yaw, t, ev, obs, cam, {"candidates": 1, "survivors": 1, "tie_break_order": 0})
+    out["variant"] = "long"
+    return out
+
+
 def path_record(feats, alt_ft, cfg, kind, params, xy, yaw, t, ev, obs, cam, planner: dict) -> dict:
     alt = altitude_m(alt_ft)
     fps = float(cfg["clip"]["fps"])
@@ -469,11 +529,13 @@ def path_file(sdir: Path, alt_ft, variant: str | None = None, view: str | None =
 def run_stage4(location: str, cfg: dict, out_dir: Path | None = None, variant: str | None = None,
                view: str | None = None, altitudes=None) -> list[Path]:
     slug = slugify(location)
+    cfg = for_location(cfg, location)
     sdir = out_dir or scene_dir(cfg, slug)
     feats = json.loads((scene_dir(cfg, slug) / "buildings.geojson").read_text())["features"]
     outs = []
     for alt_ft in altitudes or cfg["altitudes_ft"]:
-        p = plan_street(feats, alt_ft, cfg) if variant == "street" else plan(feats, alt_ft, cfg)
+        p = (plan_route(feats, alt_ft, cfg, view) if variant == "long" else
+             plan_street(feats, alt_ft, cfg) if variant == "street" else plan(feats, alt_ft, cfg))
         p["location"] = slug
         out = path_file(sdir, alt_ft, variant, view)
         out.write_text(json.dumps(p, indent=1) + "\n")
@@ -489,12 +551,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="Stage 4: drone camera paths")
     ap.add_argument("--location", required=True)
     ap.add_argument("--config", default=None)
-    ap.add_argument("--variant", default=None, choices=["street"],
-                    help="street: clip following the street corridors")
+    ap.add_argument("--variant", default=None, choices=["street", "long"],
+                    help="street: clip following the street corridors; long: a place's configured route")
+    ap.add_argument("--view", default=None, help="one of the place's extra camera views (with --variant long)")
     ap.add_argument("--altitude", type=int, action="append", help="limit to this altitude in feet; repeatable")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    run_stage4(a.location, load_config(a.config), variant=a.variant, altitudes=a.altitude)
+    run_stage4(a.location, load_config(a.config), variant=a.variant, view=a.view, altitudes=a.altitude)
 
 
 if __name__ == "__main__":

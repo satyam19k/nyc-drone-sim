@@ -13,7 +13,7 @@ from shapely.geometry import Point, shape
 from _checks import REPO_ROOT, CheckList
 
 from nyc_drone_sim import geo
-from nyc_drone_sim.common import FT_TO_M, load_config, scene_dir, slugify
+from nyc_drone_sim.common import extent_polygon, for_location, FT_TO_M, load_config, scene_dir, slugify
 
 FIXTURE = {"query": "120 Broadway", "bin": "1001026", "lon": -74.0105, "lat": 40.7082}
 
@@ -23,7 +23,7 @@ def main():
     ap.add_argument("--location", default=FIXTURE["query"])
     ap.add_argument("--config", default=None)
     a = ap.parse_args()
-    cfg = load_config(a.config)
+    cfg = for_location(load_config(a.config), a.location)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
     g = CheckList(1, slug)
@@ -77,7 +77,12 @@ def main():
     def g15():
         far = max(float(np.hypot(*np.asarray(pg.exterior.coords).T).max())
                   for gm in geoms for pg in gm.geoms)
-        return far <= R + 150, f"farthest vertex {far:.1f} m, limit {R + 150:g} m"
+        if not cfg.get("corridor"):
+            return far <= R + 150, f"farthest vertex {far:.1f} m, limit {R + 150:g} m"
+        # a corridor scene: measure from the corridor itself, not from the circle that encloses it
+        ext = extent_polygon(cfg)
+        out = max(ext.distance(Point(*c)) for gm in geoms for pg in gm.geoms for c in pg.exterior.coords)
+        return out <= 150, f"farthest vertex {out:.1f} m outside the scene corridor, limit 150 m ({far:.1f} m from the origin)"
 
     def g16():
         share = sum(p["height_imputed"] for p in props) / len(props)
