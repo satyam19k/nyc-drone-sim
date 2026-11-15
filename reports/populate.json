@@ -1,0 +1,73 @@
+{
+ "stage": "populate",
+ "location": "rockefeller-park-transect",
+ "passed": false,
+ "utc": "2026-11-15T20:39:24+00:00",
+ "checks": [
+  {
+   "id": "P1",
+   "status": "PASS",
+   "detail": "overlap with building footprints as a share of building area, judged per layer: roadbed 0.01%, sidewalk 0.31% (limit 1% each); the two together 0.32%"
+  },
+  {
+   "id": "P2",
+   "status": "PASS",
+   "detail": "1550 vehicles (1347 static, 203 moving, every one of 480 frames tested): footprints outside roadbed and parking lots 0, overlapping pairs 0, touching a building 0"
+  },
+  {
+   "id": "P3",
+   "status": "PASS",
+   "detail": "6095 on-street poses tested away from intersections: worst angle to the street 2.11 deg (limit 10), misaligned 0; 4790 moving poses, against the direction of travel 0"
+  },
+  {
+   "id": "P4",
+   "status": "PASS",
+   "detail": "3058 pedestrians (1081 walking, tested at 121 frames each): off sidewalk, plaza and crosswalk 0, inside a building 0, touching a vehicle 0"
+  },
+  {
+   "id": "P5",
+   "status": "PASS",
+   "detail": "1258 trees placed from 1118 records (219 recorded just inside the roadbed line were moved onto the kerb, 7 deeper in the roadbed or inside a building were not placed; 147 more were scattered over park lawns by rule); placed trees outside roadbed and buildings 100.0%; heights 3.0-21.8 m, median 7.1 m"
+  },
+  {
+   "id": "P6",
+   "status": "PASS",
+   "detail": "7096 placed models read back from the USD (placement list has 7096): largest |lowest z| 0.00 cm, over 5 cm: 0 []"
+  },
+  {
+   "id": "P7",
+   "status": "PASS",
+   "detail": "USD: 26574 meshes (model copies included) each resolve to one class {'boardwalk': 1, 'building': 453, 'furniture': 2066, 'ground': 1, 'lawn': 1, 'median': 1, 'parking': 1, 'path': 1, 'person': 11198, 'pier': 1, 'plaza': 1, 'road': 1, 'road_marking': 3, 'sidewalk': 1, 'vegetation': 2516, 'vehicle': 10327, 'water': 1}; without exactly one: 0; 150 ft render: classes in the segmentation ['BACKGROUND', 'UNLABELLED', 'boardwalk', 'building', 'furniture', 'ground', 'lawn', 'path', 'person', 'road', 'road_marking', 'sidewalk', 'vegetation', 'vehicle']; per class, visible objects whose pixel is labelled with the class: furniture 14/14, person 85/85, vegetation 73/73, vehicle 12/12; frames where a visible class is absent: none; ground-level classes ['boardwalk', 'ground', 'lawn', 'path', 'road', 'road_marking', 'sidewalk']; 500 ft render: classes in the segmentation ['BACKGROUND', 'UNLABELLED', 'boardwalk', 'building', 'furniture', 'ground', 'lawn', 'median', 'path', 'person', 'pier', 'plaza', 'road', 'road_marking', 'sidewalk', 'vegetation', 'vehicle', 'water']; per class, visible objects whose pixel is labelled with the class: furniture 128/137, person 710/714, vegetation 604/605, vehicle 186/186; frames where a visible class is absent: none; ground-level classes ['boardwalk', 'ground', 'lawn', 'median', 'path', 'pier', 'plaza', 'road', 'road_marking', 'sidewalk', 'water']"
+  },
+  {
+   "id": "P8",
+   "status": "FAIL",
+   "detail": "exception: RuntimeError: scene_pair was rendered before the current scene.usdc was built"
+  },
+  {
+   "id": "P9",
+   "status": "FAIL",
+   "detail": "exception: RuntimeError: scene_roof was rendered before the current scene.usdc was built"
+  },
+  {
+   "id": "P10",
+   "status": "PASS",
+   "detail": "rebuilt with seed 2026: placement list identical True (7096 objects), file byte-identical True, recorded motion identical True, road paint identical True"
+  },
+  {
+   "id": "P11",
+   "status": "FAIL",
+   "detail": "exception: RuntimeError: probe outputs are older than the current scene.usdc"
+  },
+  {
+   "id": "P12",
+   "status": "FAIL",
+   "detail": "stage 1: exit 0, 9 checks, failed none, warnings none; stage 2: exit 0, 9 checks, failed none, warnings ['[WARN] G2.8']; stage 3: probe outputs are older than the current scene.usdc; stage 4: exit 0, 8 checks, failed none, warnings none; stage 5: exit 1, 9 checks, failed ['[FAIL] G5.3', '[FAIL] G5.4', '[FAIL] G5.9'], warnings ['[WARN] G5.6']"
+  },
+  {
+   "id": "P13",
+   "status": "PASS",
+   "detail": "sidewalk: overlap 0.31% of building area, one-sidedness 0.42 (0 even, 1 all on one side); best shift within 1 m is east +0.0, north +0.0 m, which removes 0% of the overlap (a real offset would remove far more than 15%); road: overlap 0.01% of building area, one-sidedness 0.81 (0 even, 1 all on one side); best shift within 1 m is east +0.0, north -0.5 m, which removes 52% of the overlap (a real offset would remove far more than 15%); overlap is under 0.1% of building area, too small to judge by ratio"
+  }
+ ]
+}
