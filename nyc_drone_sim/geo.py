@@ -129,8 +129,18 @@ def bbox_latlon(lat: float, lon: float, half_m: float) -> dict:
 # Building fetch
 # ---------------------------------------------------------------------------
 def within_box_clause(b: dict) -> str:
-    # Socrata within_box takes latitude first: (north, west, south, east)
+    # Socrata within_box takes latitude first: (north, west, south, east).
+    # It only matches footprints lying fully inside the box, so it is used for comparison only.
     return f"within_box(the_geom, {b['north']:.7f}, {b['west']:.7f}, {b['south']:.7f}, {b['east']:.7f})"
+
+
+def intersects_box_clause(b: dict) -> str:
+    """Every footprint that touches the box, including ones that straddle its edge.
+
+    WKT order is longitude latitude.
+    """
+    w, e, s_, n = (f"{b[k]:.7f}" for k in ("west", "east", "south", "north"))
+    return f"intersects(the_geom, 'POLYGON(({w} {s_}, {e} {s_}, {e} {n}, {w} {n}, {w} {s_}))')"
 
 
 def fetch_buildings(where: str, cfg: dict, http: HttpCache) -> tuple[list[dict], int]:
@@ -354,8 +364,10 @@ def run_stage1(location: str, cfg: dict, out_dir: Path | None = None, offline: b
     loc = geocode(location, cfg, http)
     R = float(cfg["scene_radius_m"])
     box = bbox_latlon(loc["lat"], loc["lon"], R + float(cfg["data"]["bbox_margin_m"]))
-    where = within_box_clause(box)
+    where = intersects_box_clause(box)
     raw, server_count = fetch_buildings(where, cfg, http)
+    inside_only = int(http.get_json(cfg["data"]["buildings_url"] + ".json",
+                                    {"$select": "count(*)", "$where": within_box_clause(box)})[0]["count"])
     rows, report = normalise(raw, loc, cfg)
     for code, n in report["feature_codes_kept"].items():
         log.info("feature_code %s: %d kept", code, n)
@@ -364,7 +376,8 @@ def run_stage1(location: str, cfg: dict, out_dir: Path | None = None, offline: b
     location_json = {
         **loc, "slug": slug, "projection": local_proj(loc["lat"], loc["lon"]),
         "scene_radius_m": R, "bbox": box, "where": where,
-        "server_count": server_count, "rows_fetched": len(raw), **report,
+        "server_count": server_count, "rows_fetched": len(raw),
+        "within_box_count": inside_only, **report,
     }
     (out / "location.json").write_text(json.dumps(location_json, indent=1, sort_keys=True) + "\n")
     (out / "cache_manifest.json").write_text(json.dumps(http.used, indent=1) + "\n")

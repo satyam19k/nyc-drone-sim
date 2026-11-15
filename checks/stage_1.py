@@ -90,12 +90,27 @@ def main():
         b_b = (sdir / "buildings.geojson").read_bytes()
         return a_b == b_b, f"offline rerun from cache byte-identical: {a_b == b_b} ({len(b_b)} bytes)"
 
+    def g19():
+        # The fetch must return footprints that straddle the query box, and the box must hold
+        # the whole scene circle. within_box alone drops straddling footprints.
+        from pyproj import Transformer
+        b = loc["bbox"]
+        fwd = Transformer.from_crs("EPSG:4326", loc["projection"], always_xy=True)
+        xs, ys = fwd.transform([b["west"], b["east"], b["west"], b["east"]],
+                               [b["south"], b["south"], b["north"], b["north"]])
+        inner = min(min(abs(v) for v in xs), min(abs(v) for v in ys))
+        raw, _ = geo.fetch_buildings(loc["where"], cfg, http)
+        ok = loc["where"].startswith("intersects(") and inner >= R and len(raw) >= loc["within_box_count"]
+        return ok, (f"filter is intersects over a box reaching at least {inner:.0f} m from the target (radius {R:g} m); "
+                    f"{len(raw)} rows against {loc['within_box_count']} from within_box, so "
+                    f"{len(raw) - loc['within_box_count']} straddling footprints were recovered")
+
     def g18():
         p = REPO_ROOT / "evidence" / f"stage_1_{slug}.png"
         return p.exists() and p.stat().st_size > 10_000, f"{p.relative_to(REPO_ROOT)} ({p.stat().st_size} bytes)"
 
     for gid, fn in [("G1.1", g11), ("G1.2", g12), ("G1.3", g13), ("G1.4", g14),
-                    ("G1.5", g15), ("G1.6", g16), ("G1.7", g17), ("G1.8", g18)]:
+                    ("G1.5", g15), ("G1.6", g16), ("G1.7", g17), ("G1.8", g18), ("G1.9", g19)]:
         g.run(gid, fn)
     sys.exit(g.finish())
 
