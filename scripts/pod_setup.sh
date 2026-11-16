@@ -97,7 +97,11 @@ for d in "$REPO" "$MODEL_REPO"; do      # uploaded and cloned trees may belong t
     git config --global --get-all safe.directory | grep -qxF "$d" || git config --global --add safe.directory "$d"
 done
 
-step "2. commit identity in the uploaded tree"
+step "2. the uploaded tree as a git repository, and its commit identity"
+# an upload through object storage keeps neither empty folders nor file modes
+mkdir -p "$REPO/.git/refs/heads" "$REPO/.git/refs/tags" "$REPO/.git/objects/info" "$REPO/.git/objects/pack"
+git -C "$REPO" config core.fileMode false
+echo "repository at commit $(git -C "$REPO" rev-parse --short HEAD), $(git -C "$REPO" status --porcelain | wc -l) files differ from it"
 git -C "$REPO" config user.name satyam19k
 if [ -z "$(git -C "$REPO" config user.email || true)" ]; then
     [ -n "${GIT_USER_EMAIL:-}" ] || die "the uploaded tree has no user.email: set GIT_USER_EMAIL in the pod's environment"
