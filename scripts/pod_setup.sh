@@ -136,6 +136,11 @@ echo "model repository at $(git -C "$MODEL_REPO" rev-parse HEAD)"
 step "4. Python environment (3.10: newer versions have no wheels for the model's pins)"
 ( cd "$MODEL_REPO" && UV_PROJECT_ENVIRONMENT="$REPO/env_gen" uv sync --extra=cu128 --python 3.10 )
 "$REPO/env_gen/bin/python" -c "import sys, torch, cv2, yaml; print('python', sys.version.split()[0], 'torch', torch.__version__, 'opencv', cv2.__version__)"
+# The environment holds full copies of its packages (UV_LINK_MODE=copy), so the package cache,
+# some 30 GB, is dead weight on a volume that must also hold the weights. The download tool's
+# own small cache is filled again in step 5.
+uv cache clean > /dev/null 2>&1 || true
+du -sh "$REPO/env_gen" "$UV_CACHE_DIR" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------------------------
 step "5. weights, each pinned by revision"
