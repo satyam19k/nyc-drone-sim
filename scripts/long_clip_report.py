@@ -23,6 +23,7 @@ from PIL import Image, ImageDraw
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
+from nyc_drone_sim.postrender import id_to_class
 from nyc_drone_sim import scout  # noqa: E402
 from nyc_drone_sim.common import altitude_m, for_location, load_config, scene_dir, slugify  # noqa: E402
 from nyc_drone_sim.paths import Pinhole  # noqa: E402
@@ -64,7 +65,7 @@ def main():
         xy = np.array([f["position"][:2] for f in path["frames"]])
         yaw = np.array([f["yaw_deg"] for f in path["frames"]])
         pred = scout.footprint_shares(xy, yaw, altitude_m(alt), cam, U, off, 8)
-        ids = {v["class"]: int(k) for k, v in b["semantic_info"]["idToLabels"].items()}
+        ids = {c: k for k, c in id_to_class(B).items()}
         frames = list(range(0, n, 4))
         meas = {k: [] for k in MEASURED}
         meas["other"] = []

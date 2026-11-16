@@ -21,7 +21,7 @@ from _checks import REPO_ROOT, CheckList
 from nyc_drone_sim.assets import load_manifest
 from nyc_drone_sim.common import for_location, altitude_m, load_config, scene_dir, slugify
 from nyc_drone_sim.populate import rects, run_populate
-from nyc_drone_sim.postrender import bundle_dir
+from nyc_drone_sim.postrender import bundle_dir, id_to_class
 
 NEW_OBJECT_CLASSES = ("vehicle", "person", "vegetation", "furniture")
 
@@ -294,7 +294,7 @@ def main():
             b = json.loads((B / "bundle.json").read_text())
             path = json.loads((B / "path.json").read_text())
             intr = path["intrinsics"]
-            ids = {v["class"]: int(i) for i, v in b["semantic_info"]["idToLabels"].items()}
+            ids = {c: i for i, c in id_to_class(B).items()}
             n = len(path["frames"])
             expect, seen, hits, vis = {}, {}, {}, {}
             for i in sorted(set(np.linspace(0, n - 1, 8).round().astype(int).tolist())):
@@ -335,7 +335,7 @@ def main():
         """Camera matrix, semantic ids, class-of-id map and vehicle positions for frame i of a clip."""
         b = json.loads((B / "bundle.json").read_text())
         c2w = np.array(json.loads((B / "path.json").read_text())["frames"][i]["camera_to_world"])
-        ids = {int(k): v["class"] for k, v in b["semantic_info"]["idToLabels"].items()}
+        ids = id_to_class(B)
         sem = np.load(B / "semantic" / f"semantic_{i:04d}.npz")["data"]
         xy = np.array([poses[o["id"]][i][:2] if o["id"] in poses else (o["x"], o["y"]) for o in veh])
         return c2w, sem, ids, xy

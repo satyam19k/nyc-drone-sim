@@ -192,7 +192,7 @@ def main():
 
     load_s = time.time() - t0
     t1 = time.time()
-    sem_info = None
+    sem_info, sem_labels = None, {}
     for i, fr in enumerate(frames):
         set_pose(fr)
         step()
@@ -203,6 +203,9 @@ def main():
         np.save(out / "metric_depth" / f"depth_{i:04d}.npy", d)
         np.savez_compressed(out / "semantic" / f"semantic_{i:04d}.npz", data=np.asarray(s["data"]))
         sem_info = s["info"]
+        # each frame's info lists only the classes visible in that frame: keep the union, or a
+        # class that has left the view by the last frame would be missing from the bundle
+        sem_labels.update(sem_info.get("idToLabels", {}))
         (out / "camera" / f"camera_{i:04d}.json").write_text(json.dumps(
             {"index": i, "t": fr["t"], "requested_camera_to_world": fr["camera_to_world"],
              "camera_params": jsonable(cam_params.get_data())}, indent=1, default=str) + "\n")
@@ -243,7 +246,7 @@ def main():
                    "depth_colorize_range_m": [float(rc["depth_colorize_near_m"]), float(rc["depth_colorize_far_m"])],
                    "metric_depth_annotator": DEPTH_ANNOTATOR, "metric_depth_unit": "metres",
                    "metric_depth_format": "metric_depth/depth_NNNN.npy float32"},
-        "semantic_info": jsonable(sem_info),
+        "semantic_info": jsonable({**sem_info, "idToLabels": sem_labels}),
         "camera": {k: cc[k] for k in ("focal_length_mm", "horizontal_aperture_mm", "vertical_aperture_mm", "pitch_deg")},
         "seed": cfg["seed"], "gpu": gpu,
         "timing_s": {"load_and_warmup": load_s, "render": render_s},

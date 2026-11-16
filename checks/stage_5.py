@@ -13,7 +13,7 @@ from PIL import Image
 from _checks import REPO_ROOT, CheckList
 
 from nyc_drone_sim.common import for_location, altitude_m, clip_settings, load_config, slugify, variant_suffix
-from nyc_drone_sim.postrender import MODALITIES, bundle_dir, probe
+from nyc_drone_sim.postrender import MODALITIES, bundle_dir, id_to_class, probe
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
     path = {k: json.loads((B[k] / "path.json").read_text()) for k in alts}
 
     def label_ids(k):
-        return {v["class"]: int(i) for i, v in bundle[k]["semantic_info"]["idToLabels"].items()}
+        return {c: i for i, c in id_to_class(B[k]).items()}
 
     @functools.lru_cache(maxsize=200)    # bounded, so long clips do not fill memory
     def sem(k, i):
