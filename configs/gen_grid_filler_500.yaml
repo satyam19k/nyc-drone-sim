@@ -1,0 +1,81 @@
+# Useful short runs that the work queue falls back to when nothing else is waiting, so a GPU is
+# never idle. Each is a real question about settings, on 93-frame windows of the Canal Street clip.
+run_folder: runs/run_009/canal-shore-street
+altitude: 500
+grid_name: filler_93f
+seed: 2026
+num_steps: 35
+edge_file: edges_rendered.mp4
+scenes:
+  shoreline: Real aerial drone footage looking down at an angle on the Hudson River waterfront in Lower
+    Manhattan, New York City. The left third of the frame is the wide Hudson River, open water stretching
+    to the edge of the image. Along the water's edge runs a straight grey granite seawall topped by a
+    narrow boardwalk of weathered grey-brown wooden planks. Beside it lies a broad waterfront esplanade
+    paved with large pale grey stone and concrete slabs, flat, clean and dry, crossed by darker paved
+    footpaths, with people walking and standing on it. To the right of the esplanade a pale concrete sidewalk
+    carries a row of leafy green street trees. Beyond it runs West Street, a wide multi-lane highway of
+    dark grey asphalt with white dashed lane lines and white striped crosswalks, divided by a raised concrete
+    median planted with small trees. Cars, yellow taxis and vans drive along the highway.
+  turn: Real aerial drone footage looking down at an angle on West Street beside the Hudson River in Lower
+    Manhattan, New York City. A wide multi-lane highway of dark grey asphalt fills the middle of the frame,
+    with white dashed lane lines, white striped crosswalks at the intersection and a raised concrete median
+    planted with small trees. Pale concrete sidewalks run along both sides. On one side a paved stone
+    esplanade and a strip of river water slide out of view; on the other a small park with a green lawn
+    and tree canopies, and mid-rise office buildings with glass and stone facades, come into view. Cars,
+    yellow taxis and vans cross the intersection and pedestrians wait at the kerbs.
+  street: Real aerial drone footage looking down at an angle along Canal Street in Lower Manhattan, New
+    York City. Mid-rise brick, stone and glass buildings six to twelve storeys tall stand on both sides,
+    with regular rows of rectangular windows and flat grey rooftops carrying vents and water tanks. Between
+    them runs a city street of dark grey asphalt with a yellow centre line, white lane lines and white
+    striped crosswalks, edged by pale concrete sidewalks. A small triangular park with a green lawn and
+    dense leafy tree canopies sits beside the street. Cars are parked along the kerbs, and cars and yellow
+    taxis drive along the street; pedestrians walk on the sidewalks.
+  both_legs: 'Real aerial drone footage looking down at an angle on Lower Manhattan, New York City, from
+    the Hudson River waterfront to Canal Street. By the river: open water, a straight grey granite seawall,
+    a narrow boardwalk of weathered grey-brown wooden planks, and a broad esplanade paved with large pale
+    grey stone and concrete slabs, with people walking on it. Inland: West Street, a wide multi-lane highway
+    of dark grey asphalt with white lane lines, striped crosswalks and a raised concrete median planted
+    with small trees; then Canal Street, a city street of dark grey asphalt with pale concrete sidewalks,
+    a small park with a green lawn and leafy trees, and mid-rise brick, stone and glass buildings with
+    rows of rectangular windows and flat grey rooftops. Cars, yellow taxis and vans drive along the roads
+    and are parked at the kerbs.'
+weather:
+  clear: A clear sunny afternoon. Bright sunlight casts crisp shadows from the trees, people and vehicles.
+    The river is deep blue-green with small ripples and sparkling highlights. Real camera footage from
+    a drone, photorealistic, natural colours, fine surface detail.
+  snow: A heavy snowfall in winter. A thick, even layer of fresh white snow covers the paving, the lawns,
+    the kerbs, the roofs of the buildings and the roofs of the parked cars, and lines the branches of
+    the trees. The road asphalt is wet and dark where tyres have cleared it. The river is dull grey under
+    a flat overcast sky. The light is cold and diffuse with no shadows, and snowflakes drift through the
+    air. Real camera footage from a drone, photorealistic, natural muted winter colours, fine surface
+    detail.
+  fog: 'A foggy morning. Thick grey fog hangs over the whole scene: nearby surfaces are clear but pale,
+    and everything farther away fades into soft grey haze with low contrast. The paving and the road are
+    damp and darker than usual. The river is flat grey and disappears into the mist. The light is dim,
+    soft and diffuse with no shadows. Real camera footage from a drone, photorealistic, muted natural
+    colours, fine surface detail.'
+  rain: 'Heavy rain under a dark overcast sky. Every surface is soaking wet: the paving and the road asphalt
+    are dark and glossy with puddles and mirror-like reflections, and the roofs shine with water. Raindrops
+    ring the surface of the grey river. Vehicles have their headlights on and leave spray behind them.
+    The light is dim and flat with no shadows. Real camera footage from a drone, photorealistic, muted
+    natural colours, fine surface detail.'
+negative_extra: sand, desert, dunes, beach, green water, algae, CGI, video game render, flat colours
+runs:
+- name: F22_shore500_clear_K2
+  window: shoreline
+  guidance: 3
+  weights: &id001
+  - 0.5
+  - 0.3
+  - 0.5
+- name: F23_shore500_clear_K1
+  window: shoreline
+  guidance: 3
+  weights:
+  - 1.0
+  - 1.0
+  - 1.0
+- name: F24_street500_clear_K2
+  window: street
+  guidance: 3
+  weights: *id001
