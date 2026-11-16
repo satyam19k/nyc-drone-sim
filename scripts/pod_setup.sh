@@ -26,8 +26,11 @@ HF_TOOL="hf>=1.3.5"
 
 step() { echo; echo "=== [$(date -u +%H:%M:%S)] $*"; }
 die() { echo "STOP: $*" >&2; exit 1; }
-cfg() { sed -n "s/^  $1: *\"\{0,1\}\([^\"# ]*\).*/\1/p" "$REPO/configs/gen.yaml" | head -1; }
-at_least() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]; }   # at_least MIN HAVE
+# Readers below consume all their input (awk, sed -n 1p, grep > /dev/null): under pipefail a
+# reader that closes the pipe early, like head -1 or grep -q, fails the pipeline at random.
+cfg() { awk -v k="$1:" '$1 == k && !done { v = $2; gsub(/"/, "", v); print v; done = 1 }' "$REPO/configs/gen.yaml"; }
+at_least() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | sed -n 1p)" = "$1" ]; }   # at_least MIN HAVE
+trap 'echo "STOP: line $LINENO failed: $BASH_COMMAND" >&2' ERR
 
 case "$STAGE" in all|system) ;; *) die "unknown stage '$STAGE': use no argument or 'system'" ;; esac
 [ -f "$REPO/configs/gen.yaml" ] || die "repository not found at $REPO: upload it before running this"
@@ -48,12 +51,12 @@ if [ -n "${EXPECT_VOLUME_GB:-}" ]; then
     fi
     echo "$WS is ${HAVE_GB} GB, as expected for the ${EXPECT_VOLUME_GB} GB network volume"
 fi
-GLIBC=$(ldd --version | head -1 | grep -oE '[0-9]+\.[0-9]+$')
+GLIBC=$(ldd --version 2>&1 | awk 'NR == 1 { print $NF }')
 at_least "$(cfg min_glibc)" "$GLIBC" || die "glibc $GLIBC is older than $(cfg min_glibc): pick another image"
 echo "glibc $GLIBC (needs $(cfg min_glibc) or newer)"
 if command -v nvidia-smi >/dev/null 2>&1; then
     nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
-    DRIVER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -1)
+    DRIVER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | sed -n 1p)
     at_least "$(cfg min_driver)" "$DRIVER" || echo "WARNING: NVIDIA driver $DRIVER is older than $(cfg min_driver). Setup needs no GPU, but the model must not run on this machine."
 else
     echo "no GPU on this machine. Setup needs none; the driver is checked by the job on the GPU machine."
@@ -94,7 +97,7 @@ source "$WS/env.sh"
 
 git lfs install --skip-repo >/dev/null
 for d in "$REPO" "$MODEL_REPO"; do      # uploaded and cloned trees may belong to another user id
-    git config --global --get-all safe.directory | grep -qxF "$d" || git config --global --add safe.directory "$d"
+    git config --global --get-all safe.directory | grep -xF "$d" > /dev/null || git config --global --add safe.directory "$d"
 done
 
 step "2. the uploaded tree as a git repository, and its commit identity"
