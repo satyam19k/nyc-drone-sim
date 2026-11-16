@@ -3,6 +3,9 @@ path asks for is already in the local cache.
 
   HF_HUB_OFFLINE=1 UV_OFFLINE=1 python -m nyc_drone_sim.gen.offline_check          resolve and load
   ... --resolve-only                                                              resolve paths only
+  ... --config configs/gen_pod.yaml                                               another machine's paths
+
+With COSMOS_EXPERIMENTAL_CHECKPOINTS=1 the distilled edge checkpoint is checked as well.
 
 It uses the model's own lookup functions, so the paths are found the same way the job finds them:
 the four control checkpoints (multi-control loads all four), the video tokenizer, the text
@@ -21,14 +24,15 @@ from .common import load_gen_config
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--resolve-only", action="store_true")
+    ap.add_argument("--config", default=None)
     a = ap.parse_args()
     if os.environ.get("HF_HUB_OFFLINE") != "1" or os.environ.get("UV_OFFLINE") != "1":
         print("set HF_HUB_OFFLINE=1 and UV_OFFLINE=1: this check only means something offline")
         return 2
-    cfg = load_gen_config()
+    cfg = load_gen_config(a.config)
     os.chdir(cfg["model"]["repo_dir"])
     sys.path.insert(0, cfg["model"]["repo_dir"])
-    from cosmos_transfer2.config import CONTROL_KEYS, MODEL_CHECKPOINTS, ModelKey
+    from cosmos_transfer2.config import CONTROL_KEYS, MODEL_CHECKPOINTS, ModelKey, ModelVariant
     from cosmos_transfer2._src.imaginaire.auxiliary.guardrail.common.core import GUARDRAIL1_CHECKPOINT
     from cosmos_transfer2._src.imaginaire.utils.checkpoint_db import get_checkpoint_path
 
@@ -51,6 +55,10 @@ def main() -> int:
     for key in CONTROL_KEYS:           # the multi-control model loads every branch
         ck = MODEL_CHECKPOINTS[ModelKey(variant=key)]
         step(f"control checkpoint {key}", lambda ck=ck: size(get_checkpoint_path(ck.s3.uri)))
+    distilled = ModelKey(variant=ModelVariant.EDGE, distilled=True)
+    if distilled in MODEL_CHECKPOINTS:   # registered only with COSMOS_EXPERIMENTAL_CHECKPOINTS=1
+        dk = MODEL_CHECKPOINTS[distilled]
+        step("distilled edge checkpoint", lambda: size(get_checkpoint_path(dk.s3.uri)))
     step("video tokenizer (Wan2.1 VAE)", lambda: size(get_checkpoint_path("685afcaa-4de2-42fe-b7b9-69f7a2dee4d8")))
     step("text encoder (Cosmos-Reason1)", lambda: size(get_checkpoint_path("cb3e3ffa-7b08-4c34-822d-61c7aa31a14f")))
     step("guardrail files", lambda: size(GUARDRAIL1_CHECKPOINT.download()))
@@ -89,6 +97,9 @@ def main() -> int:
             ck = MODEL_CHECKPOINTS[ModelKey(variant=key)]
             step(f"read checkpoint {key}",
                  lambda ck=ck: f"{len(torch.load(get_checkpoint_path(ck.s3.uri), map_location='cpu', weights_only=False))} entries")
+        if distilled in MODEL_CHECKPOINTS:
+            step("read distilled edge checkpoint",
+                 lambda: f"{len(torch.load(get_checkpoint_path(dk.s3.uri), map_location='cpu', weights_only=False))} entries")
     print(f"{'all found offline' if not failed else str(failed) + ' item(s) missing or unreadable'}")
     return 1 if failed else 0
 
