@@ -72,3 +72,10 @@ runs:
 # The H100 figure is the model's published single-control time; the others are scaled guesses.
 estimate_s_per_chunk: {h200: 400, h100: 500, a100: 800}
 model_load_s: 420
+
+# Windows cut out of a clip with nyc_drone_sim.gen.windows
+window:
+  width: 1280
+  height: 720
+  dither_seed: 2026        # the smooth depth control adds this fixed pattern before rounding to 8 bits
+  smooth_crf: 4            # encode the dithered picture nearly losslessly, or the encoder smears it
