@@ -67,6 +67,13 @@ def for_location(cfg: dict, location: str) -> dict:
     out["place"] = {**place, "name": location}
     if "motion_frames" in place:      # recorded motion only needs to last as long as the place's clips
         out["populate"] = {**cfg["populate"], "frames": int(place["motion_frames"])}
+    if "frames" in place:             # a place may set the length of its own long clip
+        out["long"] = {**cfg["long"], "frames": int(place["frames"])}
+    if place.get("sync_ground_track"):
+        # One ground speed and one yaw-rate limit for every altitude: the route is the ground
+        # track of the image-centre point, and each altitude's camera sits behind it.
+        out["speed_mps"] = {k: float(place["speed_mps"]) for k in cfg["speed_mps"]}
+        out["paths"] = {**cfg["paths"], "max_yaw_rate_deg_s": float(place["max_yaw_rate_deg_s"])}
     if "route_m" in place:
         # No geometry library here: this also runs inside the renderer's Python, which has none.
         # The farthest point of a buffered polyline from the origin is its farthest vertex plus

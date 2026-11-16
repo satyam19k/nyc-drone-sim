@@ -143,12 +143,44 @@ def main():
             if p["path_type"] == "hover_pan":
                 s_ok = sp.max() == 0
                 s_txt = "stationary (hover_pan)"
+            elif p.get("sync_ground_track"):
+                # The constant-speed rule applies to the point the image centre follows on the
+                # ground, which both altitudes share. The camera sits altitude / tan(pitch) behind
+                # that point, so in the turn it swings and its own speed cannot stay constant.
+                G = ground_points(k)
+                gs = np.linalg.norm(np.diff(G, axis=0), axis=1) / dt
+                s_ok = (gs.max() - gs.min()) / gs.mean() <= 0.02 and abs(gs.mean() - cfg["speed_mps"][k]) / cfg["speed_mps"][k] <= 0.02
+                s_txt = (f"image-centre ground point speed {gs.min():.4f}-{gs.max():.4f} m/s (config {cfg['speed_mps'][k]}); "
+                         f"camera speed {sp.min():.2f}-{sp.max():.2f} m/s (not held constant: it swings through the turn)")
             else:
                 s_ok = (sp.max() - sp.min()) / sp.mean() <= 0.02 and abs(sp.mean() - cfg["speed_mps"][k]) / cfg["speed_mps"][k] <= 0.02
                 s_txt = f"speed {sp.min():.4f}-{sp.max():.4f} m/s (config {cfg['speed_mps'][k]})"
             ok &= s_ok and yr.max() <= cfg["paths"]["max_yaw_rate_deg_s"]
-            det.append(f"{k} ft: {s_txt}, max yaw rate {yr.max():.2f} deg/s")
+            det.append(f"{k} ft: {s_txt}, max yaw rate {yr.max():.2f} deg/s (limit {cfg['paths']['max_yaw_rate_deg_s']:g})")
         return ok, "; ".join(det)
+
+    def ground_points(k):
+        """Where the image-centre ray meets the ground, per frame, from the saved camera matrices."""
+        pos, fwd = M[k][:, :3, 3], -M[k][:, :3, 2]
+        return (pos + fwd * (-pos[:, 2] / fwd[:, 2])[:, None])[:, :2]
+
+    def g49():
+        # Both altitudes must look at the same ground point in the same frame.
+        if not all(p.get("sync_ground_track") for p in paths.values()):
+            return None, "not evaluated: this clip does not share a ground track between altitudes"
+        if len(paths) < 2:
+            return None, "not evaluated: only one altitude was checked"
+        ks = sorted(paths)
+        ref = ground_points(ks[0])
+        det, ok = [], True
+        for k in ks[1:]:
+            d = np.linalg.norm(ground_points(k) - ref, axis=1)
+            ok &= d.max() <= 1.0
+            det.append(f"image-centre ground points at {ks[0]} ft and {k} ft: largest separation {d.max():.4f} m "
+                       f"over {len(d)} frames (limit 1 m)")
+        saved = max(float(np.linalg.norm(ground_points(k) - np.array([f["ground_point"] for f in paths[k]["frames"]]), axis=1).max()) for k in ks)
+        ok &= saved <= 0.01
+        return ok, "; ".join(det) + f"; against the planned track: {saved:.4f} m"
 
     def g44():
         det, ok = [], True
@@ -260,7 +292,7 @@ def main():
         return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"
 
     for gid, fn in [("G4.1", g41), ("G4.2", g42), ("G4.3", g43), ("G4.4", g44),
-                    ("G4.5", g45), ("G4.6", g46), ("G4.7", g47), ("G4.8", g48)]:
+                    ("G4.5", g45), ("G4.6", g46), ("G4.7", g47), ("G4.8", g48), ("G4.9", g49)]:
         g.run(gid, fn)
     sys.exit(g.finish())
 

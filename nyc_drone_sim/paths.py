@@ -471,8 +471,17 @@ def plan_route(feats: list[dict], alt_ft: float, cfg: dict, view: str | None = N
     speed = float(cfg["speed_mps"][int(alt_ft)])
     t = frame_times(cfg, "long")
     obs = Obstacles(feats, alt, cfg)
-    focus = float(place["focus"][int(alt_ft)])
-    xy, yaw = route_track(place["route_m"], speed, t, focus, float(place.get("yaw_offset_deg", 0.0)), cfg)
+    ground = None
+    if place.get("sync_ground_track"):
+        # The route is where the image centre meets the ground, the same for every altitude and
+        # frame. The camera sits behind that point along the view, by altitude / tan(pitch).
+        from .shorestreet import camera_xy, sync_track
+        ground, yaw = sync_track(place["route_m"], speed, t, cfg["shore_street"])
+        xy = camera_xy(ground, yaw, alt, cam.pitch_deg)
+        focus = None
+    else:
+        focus = float(place["focus"][int(alt_ft)])
+        xy, yaw = route_track(place["route_m"], speed, t, focus, float(place.get("yaw_offset_deg", 0.0)), cfg)
     if any(obs.is_blocked(p) for p in xy):
         raise RuntimeError(f"{alt_ft} ft: the route passes within the clearance of a tall building")
     if np.abs(np.diff(yaw) / np.diff(t)).max() > float(cfg["paths"]["max_yaw_rate_deg_s"]):
@@ -488,6 +497,11 @@ def plan_route(feats: list[dict], alt_ft: float, cfg: dict, view: str | None = N
                                                     "yaw_offset_deg": float(place.get("yaw_offset_deg", 0.0)),
                                                     "from": [float(v) for v in xy[0]], "to": [float(v) for v in xy[-1]]},
                       xy, yaw, t, ev, obs, cam, {"candidates": 1, "survivors": 1, "tie_break_order": 0})
+    if ground is not None:
+        out["sync_ground_track"] = True
+        out["ground_speed_mps"] = speed
+        for f, g in zip(out["frames"], ground):
+            f["ground_point"] = [float(g[0]), float(g[1])]
     out["variant"] = "long"
     return out
 

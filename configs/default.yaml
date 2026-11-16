@@ -260,6 +260,18 @@ places:
     motion_frames: 480
     views:
       inland:    {route_m: [[-40.0, -300.0], [-20.0, -200.0], [0.0, -50.0], [35.0, 200.0], [50.0, 300.0]], yaw_offset_deg: -55, focus: {150: 0.5, 500: 0.5}}
+  # Shore then street, chosen by nyc_drone_sim.shorestreet: 20 s along the Hudson River Park
+  # shoreline, one turn of 125 degrees, then 16 s along Canal Street. route_m is the ground track
+  # of the image-centre point; both altitudes share it at one ground speed.
+  canal-shore-street:
+    origin: [40.725359, -74.011585]
+    sync_ground_track: true
+    speed_mps: 8
+    max_yaw_rate_deg_s: 12
+    frames: 768
+    motion_frames: 768
+    buffer_m: 768
+    route_m: [[-24.1, -158.1], [-10.5, -70.1], [-10.2, -62.8], [-9.6, -57.0], [-6.9, -45.3], [0.0, 0.0], [0.8, 4.0], [2.7, 9.8], [5.3, 15.4], [7.5, 18.9], [9.9, 22.1], [14.1, 26.6], [17.2, 29.2], [22.3, 32.7], [25.9, 34.6], [31.6, 36.8], [37.6, 38.3], [41.6, 38.8], [47.8, 38.9], [53.8, 38.2], [59.8, 36.7], [65.5, 34.4], [70.8, 31.4], [74.1, 29.0], [77.2, 26.3], [171.4, -63.3]]
 
 # Long clips along a place's route (path variant "long")
 long:
@@ -358,3 +370,24 @@ populate:
     crosswalk_bar_m: [0.6, 3.0]   # bar width across the walking direction, bar length along traffic
     crosswalk_pitch_m: 1.2
     crosswalk_setback_m: 1.5
+
+# Shore-then-street routes: searched on the survey place. The route is the ground track of the
+# image-centre point, shared by both altitudes at one ground speed.
+shore_street:
+  place: lower-manhattan-waterfront
+  speed_mps: 8                 # one ground speed for both altitudes
+  leg_s: 20                    # target length of each leg, not a bound
+  turn_radius_m: 46            # 8 m/s on this radius turns at 10 deg/s
+  max_yaw_rate_deg_s: 12
+  inland_m: 15                 # the shoreline leg runs this far inland of the water's edge
+  slip_close_m: 30             # gaps between piers narrower than twice this are closed
+  shore_round_m: 75            # corners of the shoreline curve are rounded to at least this minus inland_m
+  min_travel_lanes: 2
+  min_run_m: 150
+  max_bend_deg: 10
+  max_gap_m: 350               # farthest a street end may be from the shore curve
+  street_len_m: [100, 130, 160, 200]   # street-leg lengths tried; the target is leg_s at speed_mps
+  street_offset_m: [0, -4, 4, -8, 8]   # the street leg may sit this far to one side of the centre line
+  smooth_sigma_m: 6
+  yaw_sigma_m: 8
+  dense_step_m: 0.5
