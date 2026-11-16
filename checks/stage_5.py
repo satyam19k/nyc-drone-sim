@@ -25,7 +25,7 @@ def main():
     a = ap.parse_args()
     cfg = for_location(load_config(a.config), a.location)
     slug = slugify(a.location)
-    g = CheckList(5, slug, a.variant)
+    g = CheckList(5, slug, a.variant, run=a.run)
     n, fps = clip_settings(cfg, a.variant)
     W, H = (int(v) for v in cfg["camera"]["resolution"])
     alts = [int(x) for x in cfg["altitudes_ft"]]

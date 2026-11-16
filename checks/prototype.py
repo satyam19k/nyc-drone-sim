@@ -1,6 +1,6 @@
 """Measurements from the prototype shots: do converted models keep their scale, labels and
 instance ids in the renderer, do leaves cut out, and do moving objects stay in step across
-RGB, depth and segmentation. Writes reports/prototype.json; it reports numbers, it is not a gate."""
+RGB, depth and segmentation. Writes reports/prototype_<location>.json; it reports numbers, it is not a gate."""
 from __future__ import annotations
 
 import argparse

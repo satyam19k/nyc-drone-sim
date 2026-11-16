@@ -47,7 +47,7 @@ def main():
     cfg = for_location(load_config(a.config), a.location)
     slug = slugify(a.location)
     sdir = scene_dir(cfg, slug)
-    g = CheckList("populate", slug)
+    g = CheckList("populate", slug, a.variant, run=a.run)
     man = load_manifest(cfg)["assets"]
     placed = json.loads((sdir / "placements.json").read_text())
     objs = placed["objects"]

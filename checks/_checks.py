@@ -11,8 +11,8 @@ sys.path.insert(0, str(REPO_ROOT))
 
 
 class CheckList:
-    def __init__(self, stage: int, location: str, variant: str | None = None):
-        self.stage, self.location, self.variant = stage, location, variant
+    def __init__(self, stage: int, location: str, variant: str | None = None, run: str | None = None):
+        self.stage, self.location, self.variant, self.run_id = stage, location, variant, run
         self.results: list[dict] = []
 
     def check(self, gid: str, ok: bool, detail, warn: bool = False):
@@ -43,12 +43,15 @@ class CheckList:
         skipped = [r["id"] for r in self.results if r["status"] == "NOT EVALUATED"]
         rep = {
             "stage": self.stage, "location": self.location, "passed": passed, "not_evaluated": skipped,
+            **({"run": self.run_id} if self.run_id else {}),
             **({"variant": self.variant} if self.variant else {}),
             "utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "checks": self.results,
         }
         stem = f"stage_{self.stage}" if isinstance(self.stage, int) else str(self.stage)
-        out = REPO_ROOT / "reports" / f"{stem}{'_' + self.variant if self.variant else ''}.json"
+        # keyed by everything that identifies what was checked, so checking one location or run
+        # never overwrites the report of another
+        out = REPO_ROOT / "reports" / ("_".join([stem, self.location] + [p for p in (self.run_id, self.variant) if p]) + ".json")
         out.parent.mkdir(exist_ok=True)
         out.write_text(json.dumps(rep, indent=1, default=str) + "\n")
         note = f" ({len(skipped)} not evaluated: {', '.join(skipped)})" if skipped else ""
