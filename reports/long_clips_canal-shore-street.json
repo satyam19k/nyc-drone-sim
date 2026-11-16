@@ -1,0 +1,192 @@
+{
+ "place": "canal-shore-street",
+ "run": "run_009",
+ "altitudes": {
+  "150": {
+   "video": "/scratch/sk12075/nyc-drone-sim/runs/run_009/canal-shore-street/150/clip_0000/rgb.mp4",
+   "frames": 768,
+   "predicted": {
+    "water": {
+     "mean": 0.1675,
+     "max": 0.3687
+    },
+    "park": {
+     "mean": 0.044,
+     "max": 0.1278
+    },
+    "road": {
+     "mean": 0.2924,
+     "max": 0.4728
+    },
+    "walkway": {
+     "mean": 0.1998,
+     "max": 0.246
+    },
+    "building": {
+     "mean": 0.1598,
+     "max": 0.4842
+    },
+    "other": {
+     "mean": 0.1365,
+     "max": 0.2718
+    },
+    "not_at_grade": {
+     "mean": 0.0,
+     "max": 0.0
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.1608,
+     "max": 0.3378
+    },
+    "park": {
+     "mean": 0.0212,
+     "max": 0.0937
+    },
+    "road": {
+     "mean": 0.2383,
+     "max": 0.5615
+    },
+    "walkway": {
+     "mean": 0.1764,
+     "max": 0.2556
+    },
+    "building": {
+     "mean": 0.153,
+     "max": 0.6294
+    },
+    "tree": {
+     "mean": 0.087,
+     "max": 0.2786
+    },
+    "vehicle": {
+     "mean": 0.0097,
+     "max": 0.0269
+    },
+    "person": {
+     "mean": 0.0019,
+     "max": 0.0036
+    },
+    "furniture": {
+     "mean": 0.0025,
+     "max": 0.0045
+    },
+    "other": {
+     "mean": 0.1492,
+     "max": 0.3527
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "road",
+    "building"
+   ],
+   "road_marking_stability": {
+    "frames": 768,
+    "marking_pixels_min": 1718,
+    "marking_pixels_max": 25203,
+    "median_jump": 0.0025,
+    "p99_jump": 0.0285,
+    "max_jump": 0.1301,
+    "frame_of_max": 148,
+    "frames_over_5pct": 3
+   },
+   "timeline": "evidence/timeline_canal-shore-street_150.png",
+   "sheet": "evidence/sheet8_canal-shore-street_150.png"
+  },
+  "500": {
+   "video": "/scratch/sk12075/nyc-drone-sim/runs/run_009/canal-shore-street/500/clip_0000/rgb.mp4",
+   "frames": 768,
+   "predicted": {
+    "water": {
+     "mean": 0.2247,
+     "max": 0.4565
+    },
+    "park": {
+     "mean": 0.0113,
+     "max": 0.0122
+    },
+    "road": {
+     "mean": 0.2339,
+     "max": 0.3183
+    },
+    "walkway": {
+     "mean": 0.1467,
+     "max": 0.1754
+    },
+    "building": {
+     "mean": 0.2866,
+     "max": 0.4334
+    },
+    "other": {
+     "mean": 0.0968,
+     "max": 0.1309
+    },
+    "not_at_grade": {
+     "mean": 0.0005,
+     "max": 0.0037
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.2583,
+     "max": 0.449
+    },
+    "park": {
+     "mean": 0.0055,
+     "max": 0.0137
+    },
+    "road": {
+     "mean": 0.1357,
+     "max": 0.2067
+    },
+    "walkway": {
+     "mean": 0.0956,
+     "max": 0.1335
+    },
+    "building": {
+     "mean": 0.3799,
+     "max": 0.7572
+    },
+    "tree": {
+     "mean": 0.0358,
+     "max": 0.0635
+    },
+    "vehicle": {
+     "mean": 0.0091,
+     "max": 0.015
+    },
+    "person": {
+     "mean": 0.0009,
+     "max": 0.0012
+    },
+    "furniture": {
+     "mean": 0.0016,
+     "max": 0.0027
+    },
+    "other": {
+     "mean": 0.0776,
+     "max": 0.1414
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "road",
+    "building"
+   ],
+   "road_marking_stability": {
+    "frames": 768,
+    "marking_pixels_min": 2601,
+    "marking_pixels_max": 11297,
+    "median_jump": 0.004,
+    "p99_jump": 0.0228,
+    "max_jump": 0.0361,
+    "frame_of_max": 126,
+    "frames_over_5pct": 0
+   },
+   "timeline": "evidence/timeline_canal-shore-street_500.png",
+   "sheet": "evidence/sheet8_canal-shore-street_500.png"
+  }
+ }
+}

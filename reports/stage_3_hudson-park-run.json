@@ -1,0 +1,44 @@
+{
+ "stage": 3,
+ "location": "hudson-park-run",
+ "passed": true,
+ "not_evaluated": [],
+ "utc": "2026-11-16T06:03:29+00:00",
+ "checks": [
+  {
+   "id": "G3.1",
+   "status": "PASS",
+   "detail": "ground_150ft: centre depth 45.7200 m, expected 45.72 m +/- 0.25 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "G3.2",
+   "status": "PASS",
+   "detail": "ground_500ft: centre depth 152.4000 m, expected 152.40 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "G3.3",
+   "status": "PASS",
+   "detail": "roof: centre depth 50.0000 m, expected 50.00 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "G3.4",
+   "status": "PASS",
+   "detail": "ground_150ft: centre 'ground' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'road_marking': 0.0113, 'ground': 0.355, 'median': 0.0091, 'pier': 0.2847, 'road': 0.1343, 'sidewalk': 0.1717, 'water': 0.0262, 'person': 0.0027, 'furniture': 0.0008, 'vehicle': 0.0042}; ground_500ft: centre 'ground' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'building': 0.1275, 'road_marking': 0.0038, 'ground': 0.1214, 'boardwalk': 0.0039, 'median': 0.0205, 'parking': 0.0168, 'pier': 0.2208, 'plaza': 0.0335, 'road': 0.1337, 'sidewalk': 0.0674, 'water': 0.2192, 'person': 0.0013, 'furniture': 0.0007, 'vehicle': 0.0112, 'vegetation': 0.0183}; roof: centre 'building' (expected 'building'), unlabelled 0.00%, shares {'building': 0.8957, 'road_marking': 0.0004, 'ground': 0.0084, 'median': 0.0397, 'road': 0.0404, 'furniture': 0.0003, 'vehicle': 0.0011, 'vegetation': 0.014}"
+  },
+  {
+   "id": "G3.5",
+   "status": "PASS",
+   "detail": "ground_150ft: mean 197.3, clipped 0.00%; ground_500ft: mean 144.2, clipped 0.00%; roof: mean 178.4, clipped 0.00%"
+  },
+  {
+   "id": "G3.6",
+   "status": "PASS",
+   "detail": "peak 3370 MiB of 46068 MiB (7.3%) on NVIDIA L40S; scene load 1.8 s"
+  },
+  {
+   "id": "G3.7",
+   "status": "PASS",
+   "detail": "evidence/stage_3_hudson-park-run.png (418387 bytes)"
+  }
+ ]
+}

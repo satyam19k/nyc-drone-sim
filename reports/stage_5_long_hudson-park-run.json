@@ -1,0 +1,60 @@
+{
+ "stage": 5,
+ "location": "hudson-park-run",
+ "passed": true,
+ "not_evaluated": [],
+ "variant": "long",
+ "utc": "2026-11-16T05:25:13+00:00",
+ "checks": [
+  {
+   "id": "G5.1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 480 PNGs at 1280x720; 5 MP4s at 480 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 480 PNGs at 1280x720; 5 MP4s at 480 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "G5.2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 480 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 480 frames"
+  },
+  {
+   "id": "G5.3",
+   "status": "PASS",
+   "detail": "150 ft: 478 frames with ground over the whole centre block, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: 472 frames with ground over the whole centre block, centre depth 215.53 m (expected 215.5), worst altitude error 0.000%"
+  },
+  {
+   "id": "G5.4",
+   "status": "PASS",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0"
+  },
+  {
+   "id": "G5.5",
+   "status": "PASS",
+   "detail": "150 ft: frame-to-frame mean abs difference min 2.036, mean 2.967, max 4.406 (4-sigma limit 5.338); 500 ft: frame-to-frame mean abs difference min 5.036, mean 5.847, max 7.479 (4-sigma limit 8.621)"
+  },
+  {
+   "id": "G5.6",
+   "status": "WARN",
+   "detail": "150 ft: building share per frame min 0.6%, mean 7.7%, max 24.4%; 238 frames outside 5-95%; 150 ft mean share of other classes: boardwalk 2.75%, furniture 0.13%, ground 24.05%, median 2.24%, parking 0.07%, person 0.38%, pier 24.91%, plaza 0.34%, road 8.82%, road_marking 0.20%, sidewalk 7.63%, vegetation 1.51%, vehicle 0.66%, water 19.04%; 500 ft: building share per frame min 28.5%, mean 32.8%, max 35.9%; 0 frames outside 5-95%; 500 ft mean share of other classes: boardwalk 1.05%, furniture 0.09%, ground 8.48%, median 1.48%, parking 0.30%, person 0.13%, pier 8.97%, plaza 1.63%, road 8.65%, road_marking 0.27%, sidewalk 3.87%, vegetation 1.32%, vehicle 0.85%, water 30.09%; flagged for review"
+  },
+  {
+   "id": "G5.7",
+   "status": "PASS",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 44.40 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 39.96 dB"
+  },
+  {
+   "id": "G5.8",
+   "status": "PASS",
+   "detail": "evidence/stage_5_hudson-park-run_150_long.png (638762 bytes); evidence/stage_5_hudson-park-run_500_long.png (837864 bytes)"
+  },
+  {
+   "id": "G5.9",
+   "status": "PASS",
+   "detail": "150 ft: colourised depth grey levels p1 73 to p99 128 (range 55); the scene's metric depth gives 55 on the 5-500 m scale, need >= 90% of it; 500 ft: colourised depth grey levels p1 8 to p99 67 (range 59); the scene's metric depth gives 59 on the 5-500 m scale, need >= 90% of it"
+  },
+  {
+   "id": "G5.10",
+   "status": "PASS",
+   "detail": "150 ft: camera height from 49.5 M ground pixels in 60 frames: per-frame median 45.720 to 45.720 m (altitude 45.72 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%; 500 ft: camera height from 35.7 M ground pixels in 60 frames: per-frame median 152.400 to 152.400 m (altitude 152.4 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%"
+  }
+ ]
+}

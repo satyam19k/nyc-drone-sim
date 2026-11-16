@@ -1,0 +1,54 @@
+{
+ "stage": 1,
+ "location": "hudson-park-run",
+ "passed": true,
+ "not_evaluated": [],
+ "utc": "2026-11-16T05:56:24+00:00",
+ "checks": [
+  {
+   "id": "G1.1",
+   "status": "PASS",
+   "detail": "fixture geocode bin=1001026 lon=-74.010542 lat=40.708233; footprint part skipped (location is not the fixture)"
+  },
+  {
+   "id": "G1.2",
+   "status": "PASS",
+   "detail": "rows fetched 2180, server count(*) 2180"
+  },
+  {
+   "id": "G1.3",
+   "status": "PASS",
+   "detail": "missing-field rows {'height_roof': 0, 'ground_elevation': 0, 'feature_code': 0, 'bin': 0, 'doitt_id': 0, 'construction_year': 0, 'last_status_type': 0, 'base_bbl': 0, 'mappluto_bbl': 0, 'geom_source': 0}; null geometries 0; valid after repair 100.0000% (1 repaired); all 994 output geometries valid: True"
+  },
+  {
+   "id": "G1.4",
+   "status": "PASS",
+   "detail": "max |height_m - 0.3048*height_ft_raw| = 0.00e+00 over 994 measured rows; 0 imputed rows have no raw height and are >= floor: True; median 23.45 m, max 429.27 m"
+  },
+  {
+   "id": "G1.5",
+   "status": "PASS",
+   "detail": "farthest vertex 146.3 m outside the scene corridor, limit 150 m (1188.0 m from the origin)"
+  },
+  {
+   "id": "G1.6",
+   "status": "PASS",
+   "detail": "imputed share 0.00% (0 of 994)"
+  },
+  {
+   "id": "G1.7",
+   "status": "PASS",
+   "detail": "offline rerun from cache byte-identical: True (649998 bytes)"
+  },
+  {
+   "id": "G1.8",
+   "status": "PASS",
+   "detail": "evidence/stage_1_hudson-park-run.png (326415 bytes)"
+  },
+  {
+   "id": "G1.9",
+   "status": "PASS",
+   "detail": "filter is intersects over a box reaching at least 1111 m from the target (radius 1061.47 m); 2180 rows against 2047 from within_box, so 133 straddling footprints were recovered"
+  }
+ ]
+}
