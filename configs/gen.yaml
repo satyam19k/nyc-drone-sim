@@ -1,0 +1,74 @@
+# Video-model stage: every constant used by nyc_drone_sim/gen and slurm/gen_job.sbatch.
+model:
+  name: cosmos-transfer2.5-2b
+  repo_dir: /scratch/sk12075/src/cosmos-transfer2.5
+  commit: 2ff49d0717af02057ae79bc75c00fbff9da1b4e7
+  env_dir: /scratch/sk12075/nyc-drone-sim/env_gen
+  example_spec: assets/robot_example/multicontrol/robot_multicontrol_spec.json
+  # node requirements from the model's docs/setup.md and docs/inference.md (65.4 GB VRAM)
+  min_vram_gb: 70
+  min_glibc: "2.35"
+  min_driver: "570.124.06"
+
+# Sampling. Values not listed are the model's defaults.
+sampling:
+  seed: 2026
+  guidance: 3
+  num_steps: 35
+  resolution: "720"
+  # Long clips: the model generates 93-frame chunks; each chunk after the first is conditioned on
+  # the last num_conditional_frames frames of the previous one, so chunks overlap by that many.
+  chunk_frames: 93
+  num_conditional_frames: 1
+  control_weight: {depth: 1.0, edge: 1.0, seg: 1.0}
+
+# Control videos built on the CPU from data already in the bundle
+controls:
+  fps: 16
+  # Depth: inverse depth, near = bright, one fixed range per clip from that clip's own
+  # metric-depth percentiles, so the picture cannot flicker between frames.
+  depth_percentiles: [0.5, 99.5]
+  depth_sample_step: 8
+  # Geometry edges: Canny on the segmentation frames combined with Canny on the depth control
+  canny_low: 10
+  canny_high: 100
+  crf: 12
+
+# Prompt = scene sentence + weather sentence. No camera instructions.
+scenes:
+  hudson-park-run: >-
+    Aerial view of the Hudson River waterfront in New York City from a drone, real photograph,
+    river, piers, a waterfront park with people walking, trees, a wide road with traffic,
+    detailed building facades and rooftops, natural colours.
+  120-broadway: >-
+    Aerial view of Lower Manhattan in New York City from a drone, real photograph, streets
+    with traffic, sidewalks with people walking, trees, detailed building facades and rooftops,
+    natural colours.
+  default: >-
+    Aerial view of the New York City waterfront from a drone, real photograph, river, esplanade
+    with people walking, trees, streets with traffic, detailed building facades and rooftops,
+    natural colours.
+weather:
+  clear: Clear sunny day, crisp shadows.
+  rain: Heavy rain, overcast sky, wet reflective pavement and roofs, rain on the water.
+  snow: Snowfall, snow-covered ground, roofs and trees, overcast winter light.
+  fog: Dense fog, distant buildings fade into grey haze, soft diffuse light.
+
+# The run list, most valuable first. edge: rendered = the simulator's edges.mp4,
+# none = no edge control, geometry = edges from segmentation and depth (no cast shadows).
+runs:
+  - {altitude: 150, weather: clear, edge: rendered}
+  - {altitude: 150, weather: fog,   edge: rendered}
+  - {altitude: 150, weather: fog,   edge: none}
+  - {altitude: 150, weather: fog,   edge: geometry}
+  - {altitude: 150, weather: rain,  edge: geometry}
+  - {altitude: 150, weather: snow,  edge: geometry}
+  - {altitude: 500, weather: clear, edge: rendered}
+  - {altitude: 500, weather: fog,   edge: geometry}
+  - {altitude: 500, weather: rain,  edge: geometry}
+  - {altitude: 500, weather: snow,  edge: geometry}
+
+# Seconds per 93-frame chunk used only for the printed estimate (multi-control, 35 steps).
+# The H100 figure is the model's published single-control time; the others are scaled guesses.
+estimate_s_per_chunk: {h200: 400, h100: 500, a100: 800}
+model_load_s: 420
