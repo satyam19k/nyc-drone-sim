@@ -1,0 +1,41 @@
+# Long scene descriptions for full clips, one per scene, written from what is in frame. A full
+# clip takes one prompt for all its chunks, so each description covers the whole flight.
+# Weather paragraphs are appended. No camera instructions.
+scenes:
+  canal-shore-street: >-
+    Real aerial drone footage looking down at an angle on Lower Manhattan, New York City, from
+    the Hudson River waterfront to Canal Street. By the river: open water, a straight grey
+    granite seawall, a narrow boardwalk of weathered grey-brown wooden planks, and a broad
+    esplanade paved with large pale grey stone and concrete slabs, with people walking on it.
+    Inland: West Street, a wide multi-lane highway of dark grey asphalt with white lane lines,
+    striped crosswalks and a raised concrete median planted with small trees; then Canal Street,
+    a city street of dark grey asphalt with pale concrete sidewalks, a small park with a green
+    lawn and leafy trees, and mid-rise brick, stone and glass buildings with rows of rectangular
+    windows and flat grey rooftops. Cars, yellow taxis and vans drive along the roads and are
+    parked at the kerbs.
+  hudson-park-run: >-
+    Real aerial drone footage looking down at an angle on Hudson River Park on the west side of
+    Lower Manhattan, New York City. The left of the frame is the wide Hudson River, open water
+    reaching the edge of the image. A large flat pier deck of pale grey concrete reaches out
+    over the water, with people walking and standing on it and a low two-storey park building
+    with rows of windows at its edge. Along the shore runs a straight grey granite seawall and a
+    waterfront promenade paved with pale grey stone slabs, bordered by a narrow path of
+    grey-brown wooden planks. To the right runs West Street, a wide multi-lane highway of dark
+    grey asphalt with white dashed lane lines and white striped crosswalks, lined by a pale
+    concrete sidewalk and a row of leafy green street trees. Cars, yellow taxis, vans and a
+    delivery truck drive along the highway.
+  120-broadway: >-
+    Real aerial drone footage looking down at an angle on the Financial District of Lower
+    Manhattan, New York City. Tall stone, brick and glass office towers stand close together
+    on both sides, with rows of rectangular windows, carved stone facades and flat rooftops
+    carrying vents, water tanks and mechanical equipment. Between them run narrow city streets
+    of dark grey asphalt with white lane lines and white striped crosswalks, edged by pale
+    concrete sidewalks. Small paved plazas of grey stone open between the buildings, with a few
+    street trees. Cars, yellow taxis, vans and buses drive along the streets and are parked at
+    the kerbs, and pedestrians walk on the sidewalks and across the plazas.
+weather:
+  clear: >-
+    A clear sunny afternoon. Bright sunlight casts crisp shadows from the trees, people and
+    vehicles. The river is deep blue-green with small ripples and sparkling highlights. Real
+    camera footage from a drone, photorealistic, natural colours, fine surface detail.
+negative_extra: "sand, desert, dunes, beach, green water, algae, CGI, video game render, flat colours"
