@@ -23,17 +23,26 @@ class CheckList:
         print(f"[{status}] {gid}: {detail}")
 
     def run(self, gid: str, fn):
-        """fn returns (ok, detail) or (ok, detail, warn). Exceptions are failures."""
+        """fn returns (ok, detail) or (ok, detail, warn). Exceptions are failures.
+
+        ok = None means the check could not be made: it is recorded as NOT EVALUATED, which is
+        neither a pass nor a failure, and is counted in the report.
+        """
         try:
             out = fn()
+            if out[0] is None:
+                self.results.append({"id": gid, "status": "NOT EVALUATED", "detail": out[1]})
+                print(f"[NOT EVALUATED] {gid}: {out[1]}")
+                return
             self.check(gid, bool(out[0]), out[1], warn=len(out) > 2 and bool(out[2]))
         except Exception as e:  # a crashed check is a failed check
             self.check(gid, False, f"exception: {type(e).__name__}: {e}")
 
     def finish(self) -> int:
         passed = all(r["status"] != "FAIL" for r in self.results)
+        skipped = [r["id"] for r in self.results if r["status"] == "NOT EVALUATED"]
         rep = {
-            "stage": self.stage, "location": self.location, "passed": passed,
+            "stage": self.stage, "location": self.location, "passed": passed, "not_evaluated": skipped,
             **({"variant": self.variant} if self.variant else {}),
             "utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "checks": self.results,
@@ -42,5 +51,6 @@ class CheckList:
         out = REPO_ROOT / "reports" / f"{stem}{'_' + self.variant if self.variant else ''}.json"
         out.parent.mkdir(exist_ok=True)
         out.write_text(json.dumps(rep, indent=1, default=str) + "\n")
-        print(f"{stem.replace('_', ' ')}: {'PASSED' if passed else 'FAILED'} -> {out}")
+        note = f" ({len(skipped)} not evaluated: {', '.join(skipped)})" if skipped else ""
+        print(f"{stem.replace('_', ' ')}: {'PASSED' if passed else 'FAILED'}{note} -> {out}")
         return 0 if passed else 1

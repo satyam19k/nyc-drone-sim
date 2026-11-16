@@ -328,6 +328,86 @@ def main():
         return ok, "; ".join(det)
 
     pdir = sdir / "populate_probe" / "scene"
+    probe_result = sdir / "probe" / "probe_result.json"
+    MISSING = "not evaluated: probe renders missing"
+
+    def frame_view(B, i):
+        """Camera matrix, semantic ids, class-of-id map and vehicle positions for frame i of a clip."""
+        b = json.loads((B / "bundle.json").read_text())
+        c2w = np.array(json.loads((B / "path.json").read_text())["frames"][i]["camera_to_world"])
+        ids = {int(k): v["class"] for k, v in b["semantic_info"]["idToLabels"].items()}
+        sem = np.load(B / "semantic" / f"semantic_{i:04d}.npz")["data"]
+        xy = np.array([poses[o["id"]][i][:2] if o["id"] in poses else (o["x"], o["y"]) for o in veh])
+        return c2w, sem, ids, xy
+
+    def p8_clip():
+        # Two neighbouring vehicles in a frame of the clip itself: the writer's instance
+        # segmentation must give them different colours.
+        from PIL import Image
+        B = bundles()[alts[0]]
+        n = json.loads((B / "bundle.json").read_text())["clip"]["frames"]
+        tops = np.array([size[o["id"]][2] * 0.8 for o in veh])
+        for i in range(0, n, max(1, n // 12)):
+            c2w, sem, ids, xy = frame_view(B, i)
+            H, W = sem.shape
+            px, py, z = project(c2w, intrinsics(), np.column_stack([xy, tops]))
+            inside = np.nonzero((z > 0) & (px > 8) & (px < W - 8) & (py > 8) & (py < H - 8))[0]
+            seen = [j for j in inside if ids.get(int(sem[int(py[j]), int(px[j])])) == "vehicle"]
+            seg = None
+            for a_ in seen:
+                near = [b_ for b_ in seen if b_ != a_ and 2.5 < np.hypot(*(xy[a_] - xy[b_])) < 9.0]
+                if not near:
+                    continue
+                b_ = near[0]
+                if seg is None:
+                    seg = np.asarray(Image.open(B / "clip_0000" / "segmentation" / f"segmentation_{i:04d}.png").convert("RGB"))
+                cols = []
+                for j in (a_, b_):
+                    win = seg[int(py[j]) - 2:int(py[j]) + 3, int(px[j]) - 2:int(px[j]) + 3].reshape(-1, 3)
+                    c, cnt = np.unique(win, axis=0, return_counts=True)
+                    cols.append(tuple(int(v) for v in c[np.argmax(cnt)]))
+                return cols[0] != cols[1], (
+                    f"from the {alts[0]} ft clip, frame {i}: {veh[a_]['id']} ({veh[a_]['asset']}) and {veh[b_]['id']} "
+                    f"({veh[b_]['asset']}), {np.hypot(*(xy[a_] - xy[b_])):.1f} m apart, projected with the saved camera pose; "
+                    f"instance colours {cols[0]} vs {cols[1]}, distinct {cols[0] != cols[1]}")
+        return None, "not evaluated: no frame of the clip shows two neighbouring vehicles"
+
+    def p9_clip():
+        # Flat-roofed vehicles in a frame of the clip: metric depth at the projected roof centre
+        # against the depth expected from the model's roof height and the saved camera pose.
+        from nyc_drone_sim.shotlist import roof_height
+        lib = REPO_ROOT / cfg["assets"]["library_dir"]
+        B = bundles()[alts[0]]
+        n = json.loads((B / "bundle.json").read_text())["clip"]["frames"]
+        flat_roof = [j for j, o in enumerate(veh) if man[o["asset"]]["group"] in ("van", "bus", "truck")]
+        roofs, tested = {}, []
+        for i in range(0, n, max(1, n // 12)):
+            c2w, sem, ids, xy = frame_view(B, i)
+            H, W = sem.shape
+            for j in flat_roof:
+                o = veh[j]
+                if o["asset"] not in roofs:
+                    roofs[o["asset"]] = roof_height(lib / man[o["asset"]]["file"])
+                h = roofs[o["asset"]] * float(o.get("scale", 1.0))
+                px, py, z = project(c2w, intrinsics(), np.array([[xy[j][0], xy[j][1], h]]))
+                u, v = int(px[0]), int(py[0])
+                if not (z[0] > 0 and 8 < u < W - 8 and 8 < v < H - 8):
+                    continue
+                if any(ids.get(int(k)) != "vehicle" for k in np.unique(sem[v - 2:v + 3, u - 2:u + 3])):
+                    continue                      # hidden by a tree or at the roof's edge
+                d = np.load(B / "metric_depth" / f"depth_{i:04d}.npy")
+                tested.append((abs(float(d[v, u]) - float(z[0])), o["id"], o["asset"], i, float(z[0]), float(d[v, u]), h))
+                if len(tested) >= 5:
+                    break
+            if len(tested) >= 5:
+                break
+        if not tested:
+            return None, "not evaluated: no frame of the clip shows an unobstructed flat-roofed vehicle"
+        worst = max(tested)
+        return worst[0] <= 0.3, (
+            f"from the {alts[0]} ft clip: {len(tested)} flat-roofed vehicles, roof centre projected with the saved camera pose; "
+            f"largest depth error {worst[0] * 100:.1f} cm (limit 30) on {worst[1]} ({worst[2]}) in frame {worst[3]}: roof "
+            f"{worst[6]:.3f} m above ground, expected depth {worst[4]:.3f} m, rendered {worst[5]:.3f} m")
 
     def shot(name):
         plan = json.loads((pdir / "shots.json").read_text())
@@ -346,6 +426,8 @@ def main():
         return cam_intr
 
     def p8():
+        if not (pdir / "scene_pair.npz").exists():
+            return None, MISSING
         s, d, info = shot("scene_pair")
         c2w = np.array(s["camera_to_world"])
         out, ok = [], True
@@ -366,6 +448,8 @@ def main():
         return ok, f"two copies of {o0['asset']} ({o0['id']}, {o1['id']}) in one frame; " + "; ".join(out)
 
     def p9():
+        if not (pdir / "scene_roof.npz").exists():
+            return None, MISSING
         s, d, info = shot("scene_roof")
         H, W = d["depth"].shape[:2]
         got = float(np.mean(d["depth"][H // 2 - 1:H // 2 + 1, W // 2 - 1:W // 2 + 1]))
@@ -392,6 +476,8 @@ def main():
                     f"byte-identical {same_bytes}, recorded motion identical {same_motion}, road paint identical {same_marks}")
 
     def p11():
+        if not probe_result.exists():
+            return None, MISSING
         det, ok = [], True
         pr = json.loads((sdir / "probe" / "probe_result.json").read_text())
         if (sdir / "probe" / "probe_result.json").stat().st_mtime < (sdir / "scene.usdc").stat().st_mtime:
@@ -411,6 +497,8 @@ def main():
         return ok, "; ".join(det) + "; limit 80% of the card"
 
     def p12():
+        if not probe_result.exists():
+            return None, MISSING
         det, ok = [], True
         for st in (1, 2, 3, 4, 5):
             if st == 3:
@@ -433,7 +521,8 @@ def main():
         return ok, "; ".join(det)
 
     for gid, fn in [("P1", p1), ("P2", p2), ("P3", p3), ("P4", p4), ("P5", p5), ("P6", p6), ("P7", p7),
-                    ("P8", p8), ("P9", p9), ("P10", p10), ("P11", p11), ("P12", p12), ("P13", p13)]:
+                    ("P8", p8), ("P8c", p8_clip), ("P9", p9), ("P9c", p9_clip), ("P10", p10), ("P11", p11),
+                    ("P12", p12), ("P13", p13)]:
         if a.only is None or gid in a.only.split(","):
             g.run(gid, fn)
     if a.only is not None:
