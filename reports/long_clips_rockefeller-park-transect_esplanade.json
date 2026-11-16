@@ -1,0 +1,191 @@
+{
+ "place": "rockefeller-park-transect",
+ "run": "view_esplanade",
+ "altitudes": {
+  "150": {
+   "video": "/scratch/sk12075/nyc-drone-sim/runs/view_esplanade/rockefeller-park-transect/150/clip_0000/rgb.mp4",
+   "frames": 480,
+   "predicted": {
+    "water": {
+     "mean": 0.4559,
+     "max": 0.5673
+    },
+    "park": {
+     "mean": 0.3617,
+     "max": 0.4678
+    },
+    "road": {
+     "mean": 0.0289,
+     "max": 0.0686
+    },
+    "walkway": {
+     "mean": 0.1273,
+     "max": 0.1733
+    },
+    "building": {
+     "mean": 0.022,
+     "max": 0.0733
+    },
+    "other": {
+     "mean": 0.0042,
+     "max": 0.0207
+    },
+    "not_at_grade": {
+     "mean": 0.0,
+     "max": 0.0
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.5268,
+     "max": 0.5521
+    },
+    "park": {
+     "mean": 0.2891,
+     "max": 0.3129
+    },
+    "road": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "walkway": {
+     "mean": 0.1141,
+     "max": 0.1573
+    },
+    "building": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "tree": {
+     "mean": 0.049,
+     "max": 0.0886
+    },
+    "vehicle": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "person": {
+     "mean": 0.0016,
+     "max": 0.0027
+    },
+    "furniture": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "other": {
+     "mean": 0.0195,
+     "max": 0.0637
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "park"
+   ],
+   "road_marking_stability": {
+    "frames": 480,
+    "marking_pixels_min": 0,
+    "marking_pixels_max": 0,
+    "median_jump": 0.0,
+    "p99_jump": 0.0,
+    "max_jump": 0.0,
+    "frame_of_max": 1,
+    "frames_over_5pct": 0
+   },
+   "timeline": "evidence/timeline_rockefeller-park-transect_150_esplanade.png",
+   "sheet": "evidence/sheet8_rockefeller-park-transect_150_esplanade.png"
+  },
+  "500": {
+   "video": "/scratch/sk12075/nyc-drone-sim/runs/view_esplanade/rockefeller-park-transect/500/clip_0000/rgb.mp4",
+   "frames": 480,
+   "predicted": {
+    "water": {
+     "mean": 0.5521,
+     "max": 0.7857
+    },
+    "park": {
+     "mean": 0.114,
+     "max": 0.1713
+    },
+    "road": {
+     "mean": 0.0688,
+     "max": 0.1343
+    },
+    "walkway": {
+     "mean": 0.1238,
+     "max": 0.1733
+    },
+    "building": {
+     "mean": 0.0927,
+     "max": 0.1554
+    },
+    "other": {
+     "mean": 0.0486,
+     "max": 0.0779
+    },
+    "not_at_grade": {
+     "mean": 0.0012,
+     "max": 0.0069
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.4897,
+     "max": 0.7932
+    },
+    "park": {
+     "mean": 0.1243,
+     "max": 0.1435
+    },
+    "road": {
+     "mean": 0.0239,
+     "max": 0.0538
+    },
+    "walkway": {
+     "mean": 0.0674,
+     "max": 0.0903
+    },
+    "building": {
+     "mean": 0.2391,
+     "max": 0.3924
+    },
+    "tree": {
+     "mean": 0.0468,
+     "max": 0.058
+    },
+    "vehicle": {
+     "mean": 0.0026,
+     "max": 0.0063
+    },
+    "person": {
+     "mean": 0.0006,
+     "max": 0.001
+    },
+    "furniture": {
+     "mean": 0.0003,
+     "max": 0.0006
+    },
+    "other": {
+     "mean": 0.0052,
+     "max": 0.0116
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "park",
+    "building"
+   ],
+   "road_marking_stability": {
+    "frames": 480,
+    "marking_pixels_min": 12,
+    "marking_pixels_max": 2391,
+    "median_jump": 0.0093,
+    "p99_jump": 0.0862,
+    "max_jump": 0.1549,
+    "frame_of_max": 426,
+    "frames_over_5pct": 19
+   },
+   "timeline": "evidence/timeline_rockefeller-park-transect_500_esplanade.png",
+   "sheet": "evidence/sheet8_rockefeller-park-transect_500_esplanade.png"
+  }
+ }
+}

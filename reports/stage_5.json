@@ -2,7 +2,7 @@
  "stage": 5,
  "location": "120-broadway",
  "passed": true,
- "utc": "2026-11-15T14:34:26+00:00",
+ "utc": "2026-11-15T21:27:06+00:00",
  "checks": [
   {
    "id": "G5.1",
@@ -27,22 +27,22 @@
   {
    "id": "G5.5",
    "status": "PASS",
-   "detail": "150 ft: frame-to-frame mean abs difference min 4.493, mean 6.093, max 7.807 (4-sigma limit 9.941); 500 ft: frame-to-frame mean abs difference min 2.370, mean 3.281, max 4.446 (4-sigma limit 4.958)"
+   "detail": "150 ft: frame-to-frame mean abs difference min 5.226, mean 6.904, max 10.492 (4-sigma limit 13.066); 500 ft: frame-to-frame mean abs difference min 8.244, mean 9.405, max 10.608 (4-sigma limit 12.319)"
   },
   {
    "id": "G5.6",
    "status": "WARN",
-   "detail": "150 ft: building share per frame min 72.0%, mean 77.3%, max 84.2%; 0 frames outside 5-95%; 150 ft mean share of other classes: furniture 0.24%, ground 1.46%, person 0.16%, plaza 4.28%, road 7.51%, road_marking 0.41%, sidewalk 5.70%, vegetation 2.82%, vehicle 0.07%; 500 ft: building share per frame min 88.9%, mean 91.8%, max 97.9%; 22 frames outside 5-95%; 500 ft mean share of other classes: furniture 0.07%, ground 2.84%, person 0.02%, road 2.42%, road_marking 0.15%, sidewalk 2.42%, vehicle 0.38%; flagged for review"
+   "detail": "150 ft: building share per frame min 72.0%, mean 77.3%, max 84.2%; 0 frames outside 5-95%; 150 ft mean share of other classes: furniture 0.22%, ground 1.60%, person 0.11%, plaza 4.17%, road 7.60%, road_marking 0.26%, sidewalk 5.82%, vegetation 2.82%; 500 ft: building share per frame min 88.9%, mean 91.8%, max 97.9%; 22 frames outside 5-95%; 500 ft mean share of other classes: furniture 0.06%, ground 2.84%, person 0.02%, road 2.52%, road_marking 0.14%, sidewalk 2.44%, vehicle 0.27%; flagged for review"
   },
   {
    "id": "G5.7",
    "status": "PASS",
-   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.63 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.58 dB"
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 44.16 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 43.57 dB"
   },
   {
    "id": "G5.8",
    "status": "PASS",
-   "detail": "evidence/stage_5_120-broadway_150.png (459536 bytes); evidence/stage_5_120-broadway_500.png (491192 bytes)"
+   "detail": "evidence/stage_5_120-broadway_150.png (561922 bytes); evidence/stage_5_120-broadway_500.png (764497 bytes)"
   },
   {
    "id": "G5.9",

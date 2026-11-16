@@ -1,8 +1,8 @@
 {
  "stage": "prototype",
- "location": "120-broadway",
+ "location": "rockefeller-park-transect",
  "passed": true,
- "utc": "2026-11-15T14:21:30+00:00",
+ "utc": "2026-11-15T21:35:02+00:00",
  "checks": [
   {
    "id": "Q1 scale",
@@ -22,7 +22,7 @@
   {
    "id": "Q6 shadows",
    "status": "PASS",
-   "detail": "sun elevation 55 deg: 1.8% of the ground within 6 m of the taxi and 7.5% within 12 m of the tree is under 75% of open-ground brightness; darkest ground beside the taxi 93%, under the tree 63% of open ground"
+   "detail": "sun elevation 40 deg: 4.3% of the ground within 6 m of the taxi and 11.8% within 12 m of the tree is under 75% of open-ground brightness; darkest ground beside the taxi 64%, under the tree 67% of open ground"
   },
   {
    "id": "Q7 motion",
@@ -42,7 +42,7 @@
   {
    "id": "sheet",
    "status": "PASS",
-   "detail": "evidence/populate_prototype_120-broadway.png (230506 bytes)"
+   "detail": "evidence/populate_prototype_rockefeller-park-transect.png (242201 bytes)"
   }
  ]
 }

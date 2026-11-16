@@ -3,7 +3,7 @@
  "location": "120-broadway",
  "passed": true,
  "variant": "street",
- "utc": "2026-11-14T20:50:23+00:00",
+ "utc": "2026-11-15T22:05:32+00:00",
  "checks": [
   {
    "id": "G4.1",
@@ -13,7 +13,7 @@
   {
    "id": "G4.2",
    "status": "PASS",
-   "detail": "from 39576 USD triangles; 150 ft: nearest building surface 17.46 m; 500 ft: nearest building surface 17.98 m; required >= 10 m"
+   "detail": "from 39576 USD triangles and 14436 placed-model bounding boxes; 150 ft: nearest building surface 17.46 m; nearest placed model 37.22 m (Furniture, top at 8.5 m); 500 ft: nearest building surface 17.98 m; nearest placed model 130.19 m (Vegetation, top at 22.2 m); required >= 10 m"
   },
   {
    "id": "G4.3",

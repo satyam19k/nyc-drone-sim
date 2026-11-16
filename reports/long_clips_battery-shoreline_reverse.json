@@ -1,0 +1,99 @@
+{
+ "place": "battery-shoreline",
+ "run": "view_reverse",
+ "altitudes": {
+  "150": {
+   "video": "/scratch/sk12075/nyc-drone-sim/runs/view_reverse/battery-shoreline/150/clip_0000/rgb.mp4",
+   "frames": 480,
+   "predicted": {
+    "water": {
+     "mean": 0.5154,
+     "max": 0.5981
+    },
+    "park": {
+     "mean": 0.2323,
+     "max": 0.3208
+    },
+    "road": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "walkway": {
+     "mean": 0.1982,
+     "max": 0.2435
+    },
+    "building": {
+     "mean": 0.0521,
+     "max": 0.1478
+    },
+    "other": {
+     "mean": 0.0019,
+     "max": 0.0021
+    },
+    "not_at_grade": {
+     "mean": 0.0,
+     "max": 0.0
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.5774,
+     "max": 0.6321
+    },
+    "park": {
+     "mean": 0.0819,
+     "max": 0.1368
+    },
+    "road": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "walkway": {
+     "mean": 0.1811,
+     "max": 0.2195
+    },
+    "building": {
+     "mean": 0.063,
+     "max": 0.2418
+    },
+    "tree": {
+     "mean": 0.0791,
+     "max": 0.1332
+    },
+    "vehicle": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "person": {
+     "mean": 0.0014,
+     "max": 0.003
+    },
+    "furniture": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "other": {
+     "mean": 0.016,
+     "max": 0.1452
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "park",
+    "building"
+   ],
+   "road_marking_stability": {
+    "frames": 480,
+    "marking_pixels_min": 0,
+    "marking_pixels_max": 0,
+    "median_jump": 0.0,
+    "p99_jump": 0.0,
+    "max_jump": 0.0,
+    "frame_of_max": 1,
+    "frames_over_5pct": 0
+   },
+   "timeline": "evidence/timeline_battery-shoreline_150_reverse.png",
+   "sheet": "evidence/sheet8_battery-shoreline_150_reverse.png"
+  }
+ }
+}

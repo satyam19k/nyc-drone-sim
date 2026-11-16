@@ -2,7 +2,7 @@
  "stage": 4,
  "location": "120-broadway",
  "passed": true,
- "utc": "2026-11-15T14:32:40+00:00",
+ "utc": "2026-11-15T21:26:11+00:00",
  "checks": [
   {
    "id": "G4.1",
@@ -12,7 +12,7 @@
   {
    "id": "G4.2",
    "status": "PASS",
-   "detail": "from 39576 USD triangles and 13538 placed-model bounding boxes; 150 ft: nearest building surface 15.78 m; nearest placed model 38.10 m (Vegetation, top at 9.1 m); 500 ft: nearest building surface 21.06 m; nearest placed model 144.26 m (Furniture, top at 8.5 m); required >= 10 m"
+   "detail": "from 39576 USD triangles and 14436 placed-model bounding boxes; 150 ft: nearest building surface 15.78 m; nearest placed model 38.10 m (Vegetation, top at 9.1 m); 500 ft: nearest building surface 21.06 m; nearest placed model 144.25 m (Furniture, top at 8.5 m); required >= 10 m"
   },
   {
    "id": "G4.3",
