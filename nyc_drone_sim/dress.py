@@ -13,7 +13,7 @@ from pathlib import Path
 
 import mapbox_earcut as earcut
 import numpy as np
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade, Vt
+from pxr import Gf, Sdf, UsdGeom, UsdShade
 from shapely.geometry import Polygon, box, shape
 from shapely.ops import unary_union
 

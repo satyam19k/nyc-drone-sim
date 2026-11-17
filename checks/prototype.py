@@ -8,7 +8,6 @@ import json
 import sys
 
 import numpy as np
-from PIL import Image
 
 from _checks import REPO_ROOT, CheckList, IMAGES
 

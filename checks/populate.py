@@ -19,7 +19,7 @@ from shapely.strtree import STRtree
 from _checks import REPO_ROOT, CheckList
 
 from nyc_drone_sim.assets import load_manifest
-from nyc_drone_sim.common import for_location, altitude_m, load_config, scene_dir, slugify
+from nyc_drone_sim.common import for_location, load_config, scene_dir, slugify
 from nyc_drone_sim.populate import rects, run_populate
 from nyc_drone_sim.postrender import bundle_dir, id_to_class
 

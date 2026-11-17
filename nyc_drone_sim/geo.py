@@ -19,7 +19,7 @@ import requests
 import shapely
 from pyproj import Transformer
 from scipy.spatial import cKDTree
-from shapely.geometry import MultiPolygon, Point, Polygon, mapping, shape
+from shapely.geometry import MultiPolygon, Polygon, mapping, shape
 from shapely.geometry.polygon import orient
 
 from .common import (FT_TO_M, REPO_ROOT, validation_dir, extent_polygon, for_location, load_config, location_query,

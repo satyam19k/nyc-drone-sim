@@ -126,7 +126,7 @@ def main():
                                     "measured_over_10pct": [k for k in ("water", "park", "road", "building") if summ[k]["max"] >= 0.10],
                                     "road_marking_stability": shimmer,
                                     "timeline": str(out.relative_to(REPO)), "sheet": str(sout.relative_to(REPO))}
-        print(f"{alt} ft: measured max {({k: f'{summ[k]['max']:.0%}' for k in ('water', 'park', 'road', 'building')})}, "
+        print(f"{alt} ft: measured max {({k: format(summ[k]['max'], '.0%') for k in ('water', 'park', 'road', 'building')})}, "
               f"buildings mean {summ['building']['mean']:.0%}; objects mean tree {summ['tree']['mean']:.1%}, vehicle "
               f"{summ['vehicle']['mean']:.2%}, person {summ['person']['mean']:.2%}; markings {shimmer}")
     (REPO / "docs" / "validation" / "reports" / f"long_clips_{slug}{tag}.json").write_text(json.dumps(report, indent=1) + "\n")

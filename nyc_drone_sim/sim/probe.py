@@ -7,7 +7,6 @@ import json
 import subprocess
 import threading
 import time
-from pathlib import Path
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--location", default="120 Broadway")

@@ -15,7 +15,7 @@ import math
 from pathlib import Path
 
 import numpy as np
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdSemantics, UsdShade, Vt
+from pxr import Gf, Usd, UsdGeom, UsdLux, UsdSemantics
 
 from .assets import library_dir, load_manifest
 from .common import altitude_m, for_location, load_config, scene_dir, slugify

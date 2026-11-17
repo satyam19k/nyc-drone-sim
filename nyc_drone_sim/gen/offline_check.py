@@ -65,7 +65,6 @@ def main() -> int:
     step("text encoder (Cosmos-Reason1)", lambda: size(get_checkpoint_path("cb3e3ffa-7b08-4c34-822d-61c7aa31a14f")))
     step("guardrail files", lambda: size(GUARDRAIL1_CHECKPOINT.download()))
     if not a.resolve_only:
-        import numpy as np
         from cosmos_transfer2._src.imaginaire.auxiliary.guardrail.common import presets
 
         def text():

@@ -8,7 +8,7 @@ import sys
 
 import numpy as np
 from pxr import Usd, UsdGeom
-from shapely.geometry import Point, shape
+from shapely.geometry import Point
 
 from _checks import REPO_ROOT, CheckList, IMAGES
 

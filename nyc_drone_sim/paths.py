@@ -24,7 +24,7 @@ from scipy.sparse import csgraph
 from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
-from .common import (REPO_ROOT, altitude_m, clip_settings, extent_polygon, for_location, load_config, scene_dir,
+from .common import (altitude_m, clip_settings, extent_polygon, for_location, load_config, scene_dir,
                      slugify, variant_suffix, view_spec)
 
 log = logging.getLogger("paths")
