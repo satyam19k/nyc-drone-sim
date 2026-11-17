@@ -335,7 +335,7 @@ def build_scene(features: list[dict], cfg: dict, out_usd: Path, sdir: Path | Non
     }
 
 
-def build_scene(location: str, cfg: dict, out_dir: Path | None = None) -> Path:
+def run_scene(location: str, cfg: dict, out_dir: Path | None = None) -> Path:
     slug = slugify(location)
     cfg = for_location(cfg, location)
     sdir = out_dir or scene_dir(cfg, slug)
@@ -364,7 +364,7 @@ def main(argv=None):
     ap.add_argument("--config", default=None)
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    build_scene(a.location, load_config(a.config))
+    run_scene(a.location, load_config(a.config))
 
 
 if __name__ == "__main__":
