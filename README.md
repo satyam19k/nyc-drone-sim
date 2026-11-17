@@ -14,6 +14,33 @@ machine you start it on.
     nyc-drone route configs/routes/hudson-park-run.yaml
     nyc-drone reproduce canal-shore-street
 
+## Results
+
+Canal Street route (Hudson River shoreline, one turn, then Canal Street), a few seconds of each.
+All the videos, full length, are listed in [docs/results.md](docs/results.md).
+
+| | |
+| --- | --- |
+| ![Enhanced look at 150 ft and 500 ft](docs/media/enhanced_150ft_vs_500ft.gif) | ![Standard and enhanced look](docs/media/standard_vs_enhanced_150ft.gif) |
+| The enhanced look at 150 ft and 500 ft, same frames | Standard against enhanced look, 150 ft |
+| ![Clear and renderer fog](docs/media/clear_vs_fog_150ft.gif) | ![Simulator and generated](docs/media/simulator_vs_generated_shoreline.gif) |
+| Clear against the renderer's heavy fog, 150 ft | The simulator against the video model (setting K2), shoreline window |
+
+Renderer weather: wet is barely different from clear (contrast 0.80 to 0.89 of clear), and the
+fog strength that reads as fog at 150 ft turns the 500 ft clip almost white, so 500 ft needs a
+strength of its own.
+
+## What we learned
+
+- [01 Control weights](docs/ablations/01_control_weights.md): depth 0.5, edge 0.3, segmentation 0.5 (K2) looks real and keeps the geometry; snow appears only without segmentation.
+- [02 Prompts](docs/ablations/02_prompts.md): naming each surface helps, a prompt per window beats one for the whole flight, and naming something not in frame (a river) paints it in.
+- [03 Weather with the video model](docs/ablations/03_weather_model.md): fog, rain and snow prompts all give the same grey overcast look.
+- [04 Long clips](docs/ablations/04_long_clips.md): chaining drifts or invents content and independent windows change look at every join, so long generated clips stay experimental.
+- [06 Validation](docs/ablations/06_validation.md): the simulator's geometry and altitude are right (to 0.044% and 0.0000 m); no single score can choose a video-model setting.
+
+Reference project: Valdrada; its open vehicle, tree and pedestrian models are reused here (see
+[Data sources and licences](#data-sources-and-licences)).
+
 ## Quickstart
 
 After the [installation](#install) below:
@@ -123,7 +150,7 @@ clear weather. A place without its own prompt gets the generic city description 
 | --- | --- | --- |
 | `scene`: data, scene, flight paths | CPU; internet on the first run of a location | under 1 min for a 400 m scene; 13 to 60 min for an 800 m scene |
 | `render` | NVIDIA RTX GPU with ray-tracing cores (tested on an L40S, 48 GB; a one-minute render used 3.5 GB of it) | 1.16 to 1.31 s per frame plus about 1 min per altitude: about 20 min per altitude for one minute of video |
-| `generate` | NVIDIA GPU with 80 GB of memory (the model needs about 65 GB), Linux x86-64, glibc 2.35 or newer | not measured through this command |
+| `generate` | NVIDIA GPU with 80 GB of memory: one 93-frame window fits (the model needs about 65 GB); `--method chain` peaked at 108 GB and needs a larger card. Linux x86-64, glibc 2.35 or newer | not measured through this command |
 | `check` | CPU | about 1 min for a 400 m scene; the scene check took 22 min on an 800 m scene with 2,851 buildings |
 
 Disk: one minute of render at one altitude takes 6.5 GB (videos plus every frame as PNG and
@@ -134,7 +161,7 @@ metric depth); a 10 s run at two altitudes on a 400 m scene took 1.9 GB.
 Linux x86-64 with an NVIDIA driver. Install [uv](https://docs.astral.sh/uv/) and git, then clone:
 
 ```bash
-git clone git@github.com:satyam19k/nyc-drone-sim.git && cd nyc-drone-sim
+git clone https://github.com/satyam19k/nyc-drone-sim.git && cd nyc-drone-sim
 ```
 
 ### 1. CPU environment: data, scenes, flight paths, checks
@@ -280,7 +307,9 @@ long clip with its depth, segmentation and edge maps.
 ## Known limits
 
 - New York City only: every data source is a city dataset.
-- Weather other than clear is not available yet.
+- Weather other than clear is renderer-only (`sim.render --sim-weather`), not yet a `nyc-drone` option.
+  Wet is barely different from clear (contrast 0.80 to 0.89 of clear); fog needs a separate
+  strength at 500 ft. `--look enhanced` and `--sim-weather` are not combined yet.
 - Ground is flat at z = 0; terrain is not modelled.
 - Buildings are footprints extruded to the recorded roof height with a generated window
   pattern; there is no real facade detail.
@@ -292,6 +321,9 @@ long clip with its depth, segmentation and edge maps.
 - The repeat render of frame 0 (render-7) must agree to 35 dB. Views over tree canopy and some
   new addresses have scored 29 to 33 dB; the cause is not established.
 - The `generate` step has not yet been run end to end through `nyc-drone`.
+- Long generated clips (`--method windows` and `--method chain`) are experimental: the look
+  changes at window joins, and chaining drifts or invents content; see
+  [04_long_clips.md](docs/ablations/04_long_clips.md).
 
 ## Data sources and licences
 
@@ -322,3 +354,6 @@ building datasets or training or testing models with it. Models and converted fi
 Facade, roof, ground and water textures are generated by the code (`scene.py`,
 `sim/appearance.py`); none are downloaded. The video model, Cosmos-Transfer2.5, is NVIDIA's,
 under its own licence, and is installed separately.
+
+The code is under the MIT licence ([LICENSE](LICENSE)). The city data, the 3D models and the
+video model keep their own licences, listed above.
