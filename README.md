@@ -252,10 +252,10 @@ both saved routes against their expected poses.
 Frame sheets (colour, depth, segmentation and edges at four moments) are in
 `docs/validation/images/`, for example:
 
-- `render_175-5th-avenue-manhattan_new_address_001_150_street.png`: Flatiron, 150 ft
-- `render_209-joralemon-street-brooklyn_brooklyn_60s_001_500_street.png`: Brooklyn Heights, 500 ft, 60 s
+- `render_175-5th-avenue-manhattan_new_address_001_150_street.jpg`: Flatiron, 150 ft
+- `render_209-joralemon-street-brooklyn_brooklyn_60s_001_500_street.jpg`: Brooklyn Heights, 500 ft, 60 s
 - `render_canal-shore-street_150_long.png`: Hudson River Park, then Canal Street
-- `gen_clear_grid_93f_canal-shore-street_150.png`: the video model on 93-frame windows of the
+- `gen_clear_grid_93f_canal-shore-street_150.jpg`: the video model on 93-frame windows of the
   Canal Street route, clear weather, several settings
 
 ## Running the steps by hand

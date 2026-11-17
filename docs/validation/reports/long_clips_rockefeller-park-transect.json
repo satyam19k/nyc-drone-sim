@@ -92,7 +92,7 @@
     "frames_over_5pct": 5
    },
    "timeline": "docs/validation/images/timeline_rockefeller-park-transect_150.png",
-   "sheet": "docs/validation/images/sheet8_rockefeller-park-transect_150.png"
+   "sheet": "docs/validation/images/sheet8_rockefeller-park-transect_150.jpg"
   },
   "500": {
    "video": "runs/run_006/rockefeller-park-transect/500/clip_0000/rgb.mp4",
@@ -185,7 +185,7 @@
     "frames_over_5pct": 34
    },
    "timeline": "docs/validation/images/timeline_rockefeller-park-transect_500.png",
-   "sheet": "docs/validation/images/sheet8_rockefeller-park-transect_500.png"
+   "sheet": "docs/validation/images/sheet8_rockefeller-park-transect_500.jpg"
   }
  }
 }
