@@ -16,6 +16,9 @@ env_gen/
 slurm-*.out
 *.log
 env_cpu/
-reports/isaacsim_install.txt
+docs/validation/reports/isaacsim_install.txt
 data/assets/
 configs/gen_pod.yaml
+
+# local cluster job scripts, run logs and helpers; not part of the repository
+infra/
