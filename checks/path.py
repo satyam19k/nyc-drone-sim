@@ -10,7 +10,7 @@ import numpy as np
 from pxr import Usd, UsdGeom
 from shapely.geometry import Point
 
-from _checks import REPO_ROOT, CheckList, IMAGES
+from _checks import CheckList, IMAGES, shown
 
 from nyc_drone_sim.common import extent_polygon, for_location, altitude_m, clip_settings, load_config, scene_dir, slugify, variant_suffix
 from nyc_drone_sim.paths import path_file
@@ -289,7 +289,7 @@ def main():
         out = IMAGES / f"path_{slug}{variant_suffix(a.variant, a.view)}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
-        return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"
+        return out.stat().st_size > 10_000, f"{shown(out)} ({out.stat().st_size} bytes)"
 
     for gid, fn in [("path-1", g41), ("path-2", g42), ("path-3", g43), ("path-4", g44),
                     ("path-5", g45), ("path-6", g46), ("path-7", g47), ("path-8", g48), ("path-9", g49)]:

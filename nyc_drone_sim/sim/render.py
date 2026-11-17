@@ -212,7 +212,12 @@ def main():
     rerender = np.asarray(rgb.get_data())
     if rerender.size == 0:
         raise RuntimeError("rgb annotator returned no data after warm-up")
-    np.savez_compressed(out / "rerender_frame0.npz", rgb=rerender)
+    # depth and classes of the same render, so the check can tell geometry from colour
+    re_sem = sem.get_data()
+    np.savez_compressed(out / "rerender_frame0.npz", rgb=rerender,
+                        depth=np.asarray(depth.get_data(), dtype=np.float32),
+                        semantic=np.asarray(re_sem["data"]),
+                        labels=json.dumps(re_sem["info"].get("idToLabels", {}), default=str))
     rep.orchestrator.wait_until_complete()
     writer.next_clip()                      # warm-up frames end up in clip_0000
 

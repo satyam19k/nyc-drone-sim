@@ -7,7 +7,7 @@ import sys
 
 import numpy as np
 
-from _checks import REPO_ROOT, CheckList, IMAGES
+from _checks import CheckList, IMAGES, shown
 
 from nyc_drone_sim.common import for_location, load_config, scene_dir, slugify
 
@@ -110,7 +110,7 @@ def main():
         out = IMAGES / f"probe_{slug}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
-        return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"
+        return out.stat().st_size > 10_000, f"{shown(out)} ({out.stat().st_size} bytes)"
 
     g.run("probe-1", depth_check(ground[0], 0.25))
     g.run("probe-2", depth_check(ground[1], 0.5))

@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from shapely.geometry import Point, shape
 
-from _checks import REPO_ROOT, CheckList, IMAGES
+from _checks import REPO_ROOT, CheckList, IMAGES, shown
 
 from nyc_drone_sim import geo
 from nyc_drone_sim.common import extent_polygon, for_location, FT_TO_M, load_config, scene_dir, slugify
@@ -112,7 +112,7 @@ def main():
 
     def g18():
         p = IMAGES / f"data_{slug}.png"
-        return p.exists() and p.stat().st_size > 10_000, f"{p.relative_to(REPO_ROOT)} ({p.stat().st_size} bytes)"
+        return p.exists() and p.stat().st_size > 10_000, f"{shown(p)} ({p.stat().st_size} bytes)"
 
     for gid, fn in [("data-1", g11), ("data-2", g12), ("data-3", g13), ("data-4", g14),
                     ("data-5", g15), ("data-6", g16), ("data-7", g17), ("data-8", g18), ("data-9", g19)]:
