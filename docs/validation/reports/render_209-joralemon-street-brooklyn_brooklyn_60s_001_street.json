@@ -1,0 +1,61 @@
+{
+ "check": "render",
+ "location": "209-joralemon-street-brooklyn",
+ "passed": false,
+ "not_evaluated": [],
+ "run": "brooklyn_60s_001",
+ "variant": "street",
+ "utc": "2026-11-17T07:21:23+00:00",
+ "checks": [
+  {
+   "id": "render-1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 960 PNGs at 1280x720; 5 MP4s at 960 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 960 PNGs at 1280x720; 5 MP4s at 960 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "render-2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 960 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 960 frames"
+  },
+  {
+   "id": "render-3",
+   "status": "PASS",
+   "detail": "150 ft: 748 frames with ground over the whole centre block, centre depth 64.66 m (expected 64.7), worst altitude error 0.000%; 500 ft: 425 frames with ground over the whole centre block, centre depth 215.53 m (expected 215.5), worst altitude error 0.013%"
+  },
+  {
+   "id": "render-4",
+   "status": "PASS",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0"
+  },
+  {
+   "id": "render-5",
+   "status": "PASS",
+   "detail": "150 ft: frame-to-frame mean abs difference min 6.628, mean 20.736, max 35.018 (4-sigma limit 51.083); 500 ft: frame-to-frame mean abs difference min 10.114, mean 14.916, max 25.168 (4-sigma limit 28.443)"
+  },
+  {
+   "id": "render-6",
+   "status": "WARN",
+   "detail": "150 ft: building share per frame min 0.5%, mean 6.9%, max 22.6%; 351 frames outside 5-95%; 150 ft mean share of other classes: furniture 0.34%, ground 0.82%, lawn 10.10%, median 1.62%, parking 0.14%, path 0.54%, person 0.28%, plaza 4.46%, road 16.03%, road_marking 0.59%, sidewalk 17.74%, vegetation 39.04%, vehicle 1.71%; 500 ft: building share per frame min 23.5%, mean 61.0%, max 87.8%; 0 frames outside 5-95%; 500 ft mean share of other classes: furniture 0.15%, ground 1.51%, lawn 4.21%, median 0.78%, parking 0.18%, path 0.67%, person 0.12%, plaza 2.13%, road 8.55%, road_marking 0.33%, sidewalk 7.65%, vegetation 13.17%, vehicle 0.87%; flagged for review"
+  },
+  {
+   "id": "render-7",
+   "status": "FAIL",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 31.23 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 30.57 dB"
+  },
+  {
+   "id": "render-8",
+   "status": "PASS",
+   "detail": "docs/validation/images/render_209-joralemon-street-brooklyn_brooklyn_60s_001_150_street.png (1652339 bytes); docs/validation/images/render_209-joralemon-street-brooklyn_brooklyn_60s_001_500_street.png (1299478 bytes)"
+  },
+  {
+   "id": "render-9",
+   "status": "PASS",
+   "detail": "150 ft: colourised depth grey levels p1 76 to p99 138 (range 61); the scene's metric depth gives 61 on the 5-500 m scale, need >= 90% of it; 500 ft: colourised depth grey levels p1 15 to p99 90 (range 75); the scene's metric depth gives 75 on the 5-500 m scale, need >= 90% of it"
+  },
+  {
+   "id": "render-10",
+   "status": "PASS",
+   "detail": "150 ft: camera height from 57.3 M ground pixels in 120 frames: per-frame median 45.720 to 45.720 m (altitude 45.72 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%; 500 ft: camera height from 27.7 M ground pixels in 120 frames: per-frame median 152.400 to 152.400 m (altitude 152.4 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%"
+  }
+ ]
+}

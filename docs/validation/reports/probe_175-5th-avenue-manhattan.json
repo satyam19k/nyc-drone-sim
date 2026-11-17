@@ -1,0 +1,44 @@
+{
+ "check": "probe",
+ "location": "175-5th-avenue-manhattan",
+ "passed": true,
+ "not_evaluated": [],
+ "utc": "2026-11-17T03:12:26+00:00",
+ "checks": [
+  {
+   "id": "probe-1",
+   "status": "PASS",
+   "detail": "ground_150ft: centre depth 45.7200 m, expected 45.72 m +/- 0.25 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-2",
+   "status": "PASS",
+   "detail": "ground_500ft: centre depth 152.4000 m, expected 152.40 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-3",
+   "status": "PASS",
+   "detail": "roof: centre depth 50.0000 m, expected 50.00 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-4",
+   "status": "PASS",
+   "detail": "ground_150ft: centre 'road' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'building': 0.0231, 'road_marking': 0.0427, 'ground': 0.0017, 'lawn': 0.0616, 'road': 0.4597, 'sidewalk': 0.3079, 'person': 0.003, 'vehicle': 0.0392, 'furniture': 0.0023, 'vegetation': 0.059}; ground_500ft: centre 'road' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'building': 0.3054, 'road_marking': 0.01, 'ground': 0.0094, 'lawn': 0.0425, 'path': 0.0116, 'road': 0.2013, 'sidewalk': 0.209, 'person': 0.0011, 'vehicle': 0.0214, 'furniture': 0.0012, 'vegetation': 0.1869}; roof: centre 'building' (expected 'building'), unlabelled 0.00%, shares {'building': 0.6694, 'road_marking': 0.0053, 'ground': 0.0045, 'lawn': 0.0126, 'path': 0.0027, 'plaza': 0.0074, 'road': 0.1218, 'sidewalk': 0.1081, 'person': 0.0006, 'vehicle': 0.0178, 'furniture': 0.0012, 'vegetation': 0.0485}"
+  },
+  {
+   "id": "probe-5",
+   "status": "PASS",
+   "detail": "ground_150ft: mean 144.1, clipped 0.00%; ground_500ft: mean 128.9, clipped 0.00%; roof: mean 142.9, clipped 0.00%"
+  },
+  {
+   "id": "probe-6",
+   "status": "PASS",
+   "detail": "peak 3089 MiB of 46068 MiB (6.7%) on NVIDIA L40S; scene load 3.8 s"
+  },
+  {
+   "id": "probe-7",
+   "status": "PASS",
+   "detail": "docs/validation/images/probe_175-5th-avenue-manhattan.png (893124 bytes)"
+  }
+ ]
+}

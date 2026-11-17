@@ -1,0 +1,61 @@
+{
+ "check": "render",
+ "location": "175-5th-avenue-manhattan",
+ "passed": false,
+ "not_evaluated": [],
+ "run": "new_address_001",
+ "variant": "street",
+ "utc": "2026-11-17T06:40:43+00:00",
+ "checks": [
+  {
+   "id": "render-1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 320 PNGs at 1280x720; 5 MP4s at 320 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 320 PNGs at 1280x720; 5 MP4s at 320 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "render-2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00001 deg over 320 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 320 frames"
+  },
+  {
+   "id": "render-3",
+   "status": "PASS",
+   "detail": "150 ft: 149 frames with ground over the whole centre block, centre depth 64.66 m (expected 64.7), worst altitude error 0.044%; 500 ft: 293 frames with ground over the whole centre block, centre depth 215.52 m (expected 215.5), worst altitude error 0.013%"
+  },
+  {
+   "id": "render-4",
+   "status": "PASS",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0"
+  },
+  {
+   "id": "render-5",
+   "status": "PASS",
+   "detail": "150 ft: frame-to-frame mean abs difference min 12.633, mean 29.159, max 38.684 (4-sigma limit 60.359); 500 ft: frame-to-frame mean abs difference min 10.718, mean 14.376, max 20.135 (4-sigma limit 23.779)"
+  },
+  {
+   "id": "render-6",
+   "status": "WARN",
+   "detail": "150 ft: building share per frame min 0.0%, mean 8.3%, max 39.7%; 196 frames outside 5-95%; 150 ft mean share of other classes: furniture 0.20%, ground 0.37%, lawn 12.12%, path 3.79%, person 0.26%, plaza 0.00%, road 11.13%, road_marking 0.71%, sidewalk 18.37%, vegetation 43.79%, vehicle 1.22%; 500 ft: building share per frame min 51.1%, mean 74.8%, max 89.1%; 0 frames outside 5-95%; 500 ft mean share of other classes: furniture 0.18%, ground 0.58%, lawn 0.75%, median 0.09%, parking 0.00%, path 0.21%, person 0.09%, plaza 0.05%, road 9.59%, road_marking 0.51%, sidewalk 8.37%, vegetation 4.12%, vehicle 1.20%; flagged for review"
+  },
+  {
+   "id": "render-7",
+   "status": "FAIL",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 28.63 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 31.83 dB"
+  },
+  {
+   "id": "render-8",
+   "status": "PASS",
+   "detail": "docs/validation/images/render_175-5th-avenue-manhattan_new_address_001_150_street.png (1676343 bytes); docs/validation/images/render_175-5th-avenue-manhattan_new_address_001_500_street.png (1219790 bytes)"
+  },
+  {
+   "id": "render-9",
+   "status": "PASS",
+   "detail": "150 ft: colourised depth grey levels p1 78 to p99 148 (range 70); the scene's metric depth gives 70 on the 5-500 m scale, need >= 90% of it; 500 ft: colourised depth grey levels p1 16 to p99 93 (range 76); the scene's metric depth gives 77 on the 5-500 m scale, need >= 90% of it"
+  },
+  {
+   "id": "render-10",
+   "status": "PASS",
+   "detail": "150 ft: camera height from 16.9 M ground pixels in 40 frames: per-frame median 45.720 to 45.720 m (altitude 45.72 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%; 500 ft: camera height from 7.2 M ground pixels in 40 frames: per-frame median 152.400 to 152.400 m (altitude 152.4 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%"
+  }
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "check": "probe",
+ "location": "209-joralemon-street-brooklyn",
+ "passed": true,
+ "not_evaluated": [],
+ "utc": "2026-11-17T07:06:00+00:00",
+ "checks": [
+  {
+   "id": "probe-1",
+   "status": "PASS",
+   "detail": "ground_150ft: centre depth 45.7200 m, expected 45.72 m +/- 0.25 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-2",
+   "status": "PASS",
+   "detail": "ground_500ft: centre depth 152.4000 m, expected 152.40 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-3",
+   "status": "PASS",
+   "detail": "roof: centre depth 50.0000 m, expected 50.00 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-4",
+   "status": "PASS",
+   "detail": "ground_150ft: centre 'lawn' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'road_marking': 0.0002, 'lawn': 0.2032, 'plaza': 0.3611, 'road': 0.0898, 'sidewalk': 0.1953, 'vegetation': 0.1366, 'vehicle': 0.005, 'furniture': 0.0043, 'person': 0.0044}; ground_500ft: centre 'lawn' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'building': 0.5057, 'road_marking': 0.0043, 'ground': 0.0066, 'lawn': 0.0533, 'median': 0.0042, 'parking': 0.0242, 'path': 0.003, 'plaza': 0.0905, 'road': 0.1106, 'sidewalk': 0.1032, 'vegetation': 0.0876, 'vehicle': 0.0047, 'furniture': 0.0011, 'person': 0.0011}; roof: centre 'building' (expected 'building'), unlabelled 0.00%, shares {'building': 0.5371, 'road_marking': 0.0068, 'ground': 0.0048, 'lawn': 0.0351, 'median': 0.0051, 'parking': 0.0298, 'plaza': 0.0644, 'road': 0.1318, 'sidewalk': 0.1351, 'vegetation': 0.0399, 'vehicle': 0.0079, 'furniture': 0.0005, 'person': 0.0017}"
+  },
+  {
+   "id": "probe-5",
+   "status": "PASS",
+   "detail": "ground_150ft: mean 126.5, clipped 0.00%; ground_500ft: mean 135.1, clipped 0.00%; roof: mean 147.1, clipped 0.00%"
+  },
+  {
+   "id": "probe-6",
+   "status": "PASS",
+   "detail": "peak 3242 MiB of 46068 MiB (7.0%) on NVIDIA L40S; scene load 1.6 s"
+  },
+  {
+   "id": "probe-7",
+   "status": "PASS",
+   "detail": "docs/validation/images/probe_209-joralemon-street-brooklyn.png (719435 bytes)"
+  }
+ ]
+}

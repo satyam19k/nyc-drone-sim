@@ -1,0 +1,61 @@
+{
+ "check": "render",
+ "location": "flatiron-60s",
+ "passed": true,
+ "not_evaluated": [],
+ "run": "flatiron_60s_001",
+ "variant": "street",
+ "utc": "2026-11-17T04:52:19+00:00",
+ "checks": [
+  {
+   "id": "render-1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 960 PNGs at 1280x720; 5 MP4s at 960 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 960 PNGs at 1280x720; 5 MP4s at 960 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "render-2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 960 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 960 frames"
+  },
+  {
+   "id": "render-3",
+   "status": "PASS",
+   "detail": "150 ft: 868 frames with ground over the whole centre block, centre depth 64.66 m (expected 64.7), worst altitude error 0.044%; 500 ft: 777 frames with ground over the whole centre block, centre depth 215.53 m (expected 215.5), worst altitude error 0.013%"
+  },
+  {
+   "id": "render-4",
+   "status": "PASS",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0"
+  },
+  {
+   "id": "render-5",
+   "status": "PASS",
+   "detail": "150 ft: frame-to-frame mean abs difference min 7.934, mean 12.269, max 17.414 (4-sigma limit 21.815); 500 ft: frame-to-frame mean abs difference min 11.233, mean 14.159, max 22.440 (4-sigma limit 25.430)"
+  },
+  {
+   "id": "render-6",
+   "status": "PASS",
+   "detail": "150 ft: building share per frame min 41.5%, mean 62.7%, max 68.7%; 0 frames outside 5-95%; 150 ft mean share of other classes: furniture 0.38%, ground 2.30%, median 0.25%, parking 0.05%, person 0.08%, plaza 0.02%, road 21.18%, road_marking 1.14%, sidewalk 8.55%, vegetation 0.60%, vehicle 2.60%; 500 ft: building share per frame min 37.1%, mean 79.8%, max 90.7%; 0 frames outside 5-95%; 500 ft mean share of other classes: furniture 0.12%, ground 0.54%, lawn 1.00%, median 0.03%, parking 0.01%, path 0.21%, person 0.06%, plaza 0.49%, road 6.01%, road_marking 0.29%, sidewalk 4.93%, vegetation 4.75%, vehicle 0.80%"
+  },
+  {
+   "id": "render-7",
+   "status": "PASS",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 40.17 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 37.66 dB"
+  },
+  {
+   "id": "render-8",
+   "status": "PASS",
+   "detail": "docs/validation/images/render_flatiron-60s_150_street.png (707933 bytes); docs/validation/images/render_flatiron-60s_500_street.png (1141064 bytes)"
+  },
+  {
+   "id": "render-9",
+   "status": "PASS",
+   "detail": "150 ft: colourised depth grey levels p1 82 to p99 160 (range 78); the scene's metric depth gives 78 on the 5-500 m scale, need >= 90% of it; 500 ft: colourised depth grey levels p1 18 to p99 88 (range 71); the scene's metric depth gives 71 on the 5-500 m scale, need >= 90% of it"
+  },
+  {
+   "id": "render-10",
+   "status": "PASS",
+   "detail": "150 ft: camera height from 35.9 M ground pixels in 120 frames: per-frame median 45.720 to 45.720 m (altitude 45.72 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%; 500 ft: camera height from 15.0 M ground pixels in 120 frames: per-frame median 152.400 to 152.400 m (altitude 152.4 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%"
+  }
+ ]
+}
