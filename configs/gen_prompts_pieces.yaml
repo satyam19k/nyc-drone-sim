@@ -1,0 +1,24 @@
+# Prompts built per 93-frame piece of a chained clip (nyc_drone_sim.gen.pieces). For each piece
+# the share of pixels of each class over its frames is measured from the segmentation; every
+# class above `min_share` adds its sentence, always with the same wording and in the order
+# below. The river sentence and the river part of the weather paragraph appear only when water
+# is above `min_share`. No camera instructions; no rooftop water tanks (the model paints them as
+# open water).
+min_share: 0.03
+opening: Real aerial drone footage looking down at an angle on Lower Manhattan, New York City.
+classes:
+  water: The wide Hudson River fills part of the frame, open water stretching away.
+  boardwalk: A narrow boardwalk of weathered grey-brown wooden planks runs on top of a straight grey granite seawall.
+  pier: Wide concrete piers stand on the shore.
+  ground: Broad open areas are paved with large pale grey stone and concrete slabs, flat, clean and dry, crossed by darker paved footpaths.
+  plaza: Paved plazas of pale stone open between the streets.
+  road: Streets of dark grey asphalt carry white dashed lane lines and white striped crosswalks.
+  median: A raised concrete median planted with small trees divides the road.
+  parking: Parking lots of dark asphalt are lined with parked cars.
+  sidewalk: Pale concrete sidewalks run along the streets.
+  building: Mid-rise brick, stone and glass buildings with regular rows of rectangular windows stand along the streets, with flat grey rooftops carrying vents and mechanical equipment.
+  lawn: Small parks have green lawns.
+  path: Paved footpaths wind between the lawns.
+  vegetation: Leafy green tree canopies line the streets and fill the parks.
+  vehicle: Cars, yellow taxis and vans drive along the streets and are parked along the kerbs.
+  person: Pedestrians walk on the sidewalks and paths.
