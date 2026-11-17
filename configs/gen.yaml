@@ -1,9 +1,11 @@
-# Video-model stage: every constant used by nyc_drone_sim/gen and slurm/gen_job.sbatch.
+# Video model: every constant used by nyc_drone_sim/gen.
 model:
   name: cosmos-transfer2.5-2b
-  repo_dir: /scratch/sk12075/src/cosmos-transfer2.5
+  # The model checkout and its Python environment. Relative paths are relative to this
+  # repository; the MODEL_REPO and MODEL_PYTHON environment variables take precedence.
+  repo_dir: external/cosmos-transfer2.5
   commit: 2ff49d0717af02057ae79bc75c00fbff9da1b4e7
-  env_dir: /scratch/sk12075/nyc-drone-sim/env_gen
+  env_dir: env_gen
   example_spec: assets/robot_example/multicontrol/robot_multicontrol_spec.json
   # node requirements from the model's docs/setup.md and docs/inference.md (65.4 GB VRAM)
   min_vram_gb: 70
@@ -79,3 +81,10 @@ window:
   height: 720
   dither_seed: 2026        # the smooth depth control adds this fixed pattern before rounding to 8 bits
   smooth_crf: 4            # encode the dithered picture nearly losslessly, or the encoder smears it
+
+# The generate step: the named setting (configs/gen_prompts_windows.yaml) used for each weather
+# when none is given.
+generate:
+  default_setting: {clear: K2, snow: t4, fog: w53, rain: w53}
+  method: windows
+

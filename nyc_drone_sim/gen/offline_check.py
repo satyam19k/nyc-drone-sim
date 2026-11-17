@@ -3,7 +3,7 @@ path asks for is already in the local cache.
 
   HF_HUB_OFFLINE=1 UV_OFFLINE=1 python -m nyc_drone_sim.gen.offline_check          resolve and load
   ... --resolve-only                                                              resolve paths only
-  ... --config configs/gen_pod.yaml                                               another machine's paths
+  ... --config other.yaml                                                         another machine's paths
 
 With COSMOS_EXPERIMENTAL_CHECKPOINTS=1 the distilled edge checkpoint is checked as well.
 
@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 from .common import load_gen_config
+from .model import model_repo
 
 
 def main() -> int:
@@ -30,8 +31,9 @@ def main() -> int:
         print("set HF_HUB_OFFLINE=1 and UV_OFFLINE=1: this check only means something offline")
         return 2
     cfg = load_gen_config(a.config)
-    os.chdir(cfg["model"]["repo_dir"])
-    sys.path.insert(0, cfg["model"]["repo_dir"])
+    repo = str(model_repo(cfg))
+    os.chdir(repo)
+    sys.path.insert(0, repo)
     from cosmos_transfer2.config import CONTROL_KEYS, MODEL_CHECKPOINTS, ModelKey, ModelVariant
     from cosmos_transfer2._src.imaginaire.auxiliary.guardrail.common.core import GUARDRAIL1_CHECKPOINT
     from cosmos_transfer2._src.imaginaire.utils.checkpoint_db import get_checkpoint_path

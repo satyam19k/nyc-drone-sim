@@ -11,6 +11,23 @@ settings:
   w53: {guidance: 3, weights: [0.5, 0.3, null], edge: geometry}   # fog and rain: depth 0.5, edge 0.3, no segmentation
 
 scenes:
+  # Used for any place without its own entry, such as a new address given to the generate step.
+  default:
+    - to_frame: 1000000
+      with_water: >-
+        Real aerial drone footage looking down at an angle on a neighbourhood of New York City.
+        City blocks of brick, stone and concrete buildings with regular rows of rectangular
+        windows and flat grey rooftops line streets of dark grey asphalt with white lane lines and
+        white striped crosswalks. Pale concrete sidewalks carry rows of leafy green street trees.
+        Part of the frame is open river water beside a stone seawall. Cars, yellow taxis and vans
+        drive along the streets and are parked along the kerbs; pedestrians walk on the sidewalks.
+      without_water: >-
+        Real aerial drone footage looking down at an angle on a neighbourhood of New York City.
+        City blocks of brick, stone and concrete buildings with regular rows of rectangular
+        windows and flat grey rooftops line streets of dark grey asphalt with white lane lines and
+        white striped crosswalks. Pale concrete sidewalks carry rows of leafy green street trees,
+        and small parks have green lawns. Cars, yellow taxis and vans drive along the streets and
+        are parked along the kerbs; pedestrians walk on the sidewalks.
   canal-shore-street:
     - to_frame: 320
       with_water: >-

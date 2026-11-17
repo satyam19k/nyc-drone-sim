@@ -14,7 +14,7 @@ windows  Overlapping 93-frame windows, each generated alone from its own control
 pieces   Like windows, with longer independent pieces (--piece-frames, 185 = two chained chunks).
 
 Either way the result goes to <bundle>/gen/<model>/<weather>_<setting>_<method>/ with an 8-frame
-sheet under evidence/ and a section appended to reports/gen_overnight_summary.md.
+sheet under docs/validation/images/ and a section appended to runs/logs/gen_summary.md.
 """
 from __future__ import annotations
 
@@ -28,11 +28,12 @@ from pathlib import Path
 import numpy as np
 import yaml
 
+from .model import run_batch, run_clip
 from .common import REPO_ROOT, bundle_dir, bundle_hash, inputs_dir, load_gen_config, model_dir, scene_name, video_info, write_video
 
 WINDOW, OVERLAP = 93, 16
 MATCH_THRESHOLD = 5.0          # grey levels: larger colour differences in an overlap are matched
-SUMMARY = REPO_ROOT / "reports" / "gen_overnight_summary.md"
+SUMMARY = REPO_ROOT / "runs" / "logs" / "gen_summary.md"      # a run log, not part of the repository
 
 
 def prompts() -> dict:
@@ -63,8 +64,13 @@ def water_share(bdir: Path, start: int, frames: int) -> float:
     return float(np.mean(shares))
 
 
+def scene_legs(bdir: Path, p: dict) -> list[dict]:
+    """The scene's own prompt legs, or the generic city description for a place without any."""
+    return p["scenes"].get(scene_name(bdir)) or p["scenes"]["default"]
+
+
 def prompt_for(bdir: Path, weather: str, start: int, frames: int, p: dict) -> tuple[str, bool]:
-    legs = p["scenes"][scene_name(bdir)]
+    legs = scene_legs(bdir, p)
     mid = start + frames // 2
     leg = next(l for l in legs if mid < int(l["to_frame"]))
     wet = water_share(bdir, start, frames) >= float(p["water_share_min"])
@@ -127,7 +133,7 @@ def sheet(bdir: Path, video: np.ndarray, title: str, out_png: Path) -> None:
 
 
 def summarise(lines: list[str]) -> None:
-    SUMMARY.parent.mkdir(exist_ok=True)
+    SUMMARY.parent.mkdir(parents=True, exist_ok=True)
     with SUMMARY.open("a") as f:
         f.write("\n".join(lines) + "\n\n")
     print("\n".join(lines))
@@ -241,8 +247,7 @@ def run_windows(bdir: Path, weather: str, setting_name: str, cfg: dict, piece: i
         specs.append(path)
         meta.append({"start": s, "water_in_frame": wet, "prompt": prompt})
     t0 = time.time()
-    rc = subprocess.run(["bash", str(REPO_ROOT / "scripts" / "gen_run_batch.sh"), str(work / "windows"), *map(str, specs)],
-                        stdout=(work / "run.log").open("w"), stderr=subprocess.STDOUT).returncode
+    rc = run_batch(specs, work / "windows", cfg, log=work / "run.log")
     seconds = time.time() - t0
     missing = [s for s in starts if not (work / "windows" / f"w_{s:04d}.mp4").exists()]
     if rc != 0 or missing:
@@ -264,7 +269,7 @@ def run_windows(bdir: Path, weather: str, setting_name: str, cfg: dict, piece: i
             "bundle_sha256": bundle_hash(bdir), "frames": int(n)}
     (work / "clip.json").write_text(json.dumps(info, indent=1) + "\n")
     work.rename(final)
-    png = REPO_ROOT / "evidence" / f"gen_full_{scene_name(bdir)}_{bdir.name}_{weather}_{setting_name}_{method}.png"
+    png = REPO_ROOT / "docs" / "validation" / "images" / f"gen_full_{scene_name(bdir)}_{bdir.name}_{weather}_{setting_name}_{method}.png"
     sheet(bdir, cross, f"{weather} {setting_name} {method}", png)
     change = (bright[-1] - bright[0]) / bright[0]
     summarise([f"## {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, {'independent windows' if piece == WINDOW else 'independent pieces of two chunks'} ({len(starts)} pieces, {n} frames)",
@@ -281,7 +286,7 @@ def run_chain(bdir: Path, weather: str, setting_name: str, cfg: dict, cond: int 
     p = prompts()
     setting = p["settings"][setting_name]
     n = video_info(bdir / "clip_0000" / "rgb.mp4")["frames"]
-    legs = p["scenes"][scene_name(bdir)]
+    legs = scene_legs(bdir, p)
     wet = water_share(bdir, 0, n) >= float(p["water_share_min"])
     key = "with_water" if wet else "without_water"
     # one prompt for the whole clip: every leg's text, then the weather
@@ -296,19 +301,16 @@ def run_chain(bdir: Path, weather: str, setting_name: str, cfg: dict, cond: int 
     spath = sdir / f"{weather}_{setting_name}_{tag}.json"
     spath.write_text(json.dumps(spec, indent=1) + "\n")
     final = model_dir(bdir, cfg) / f"{weather}_{setting_name}_{tag}"
-    before = set(final.parent.glob(final.name + "*"))
-    rc = subprocess.run(["bash", str(REPO_ROOT / "scripts" / "gen_run_clip.sh"), str(spath), str(final)]).returncode
-    made = [d for d in final.parent.glob(final.name + "*") if d not in before and ".tmp_" not in d.name]
-    if rc != 0 or not made:
-        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, chained", f"- exit code {rc}"])
+    out = run_clip(spath, final, cfg)
+    if out is None:
+        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, chained"])
         return 1
-    out = made[0]
     video = read_video(out / "out.mp4")
     bounds = [0] + list(range(WINDOW, n, WINDOW - cond)) + [n]
     bright = chunk_brightness(video, bounds)
     subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "gen_seam_check.py"), "--clip", str(out), "--overlap", str(cond)])
     seams = json.loads((out / "seams.json").read_text()) if (out / "seams.json").exists() else {}
-    png = REPO_ROOT / "evidence" / f"gen_full_{scene_name(bdir)}_{bdir.name}_{weather}_{setting_name}_{tag}.png"
+    png = REPO_ROOT / "docs" / "validation" / "images" / f"gen_full_{scene_name(bdir)}_{bdir.name}_{weather}_{setting_name}_{tag}.png"
     sheet(bdir, video, f"{weather} {setting_name} chained", png)
     change = (bright[-1] - bright[0]) / bright[0]
     summarise([f"## {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, chained with {cond} conditioning frame(s) ({len(bounds) - 1} chunks, {n} frames)",
