@@ -1,0 +1,23 @@
+# Along the Hudson River Park esplanade, chosen from the scout scores. The waypoints are the
+# route the camera's ground track follows; each altitude has its own speed, and the clip is
+# centred on `focus` (0 to 1 along the route).
+#
+#   nyc-drone route configs/routes/hudson-park-run.yaml
+#   nyc-drone reproduce hudson-park-run          # compares with hudson-park-run.expected_poses.json
+#
+# origin is [latitude, longitude] or an address in quotes.
+origin: [40.719955, -74.012988]
+altitudes_ft: [150, 500]
+speed_mps: {150: 8, 500: 12}
+seed: 2026
+look: standard                # or enhanced
+sync_ground_track: false
+frames: 480                   # 30 s at 16 fps
+motion_frames: 480
+buffer_m: 768
+yaw_offset_deg: -15
+focus: {150: 0.5, 500: 0.5}
+waypoints_m: [[-45.0, -290.0], [-20.0, -150.0], [0.0, 0.0], [25.0, 150.0], [45.0, 280.0]]
+# more camera views of the same scene (python -m nyc_drone_sim.paths --variant long --view NAME)
+views:
+  reverse: {waypoints_m: [[45.0, 280.0], [25.0, 150.0], [0.0, 0.0], [-20.0, -150.0], [-45.0, -290.0]], yaw_offset_deg: 15, focus: {150: 0.5, 500: 0.5}}

@@ -1,0 +1,20 @@
+# Shore then street, chosen by nyc_drone_sim.shorestreet: 20 s along the Hudson River Park
+# shoreline, one turn of 125 degrees, then 16 s along Canal Street. The waypoints are the ground
+# track of the image-centre point; both altitudes share it at one ground speed.
+#
+#   nyc-drone route configs/routes/canal-shore-street.yaml
+#   nyc-drone reproduce canal-shore-street       # compares with canal-shore-street.expected_poses.json
+#
+# origin is [latitude, longitude] or an address in quotes. The coordinates are kept here, not
+# an address, so the camera poses stay exactly those of the existing renders.
+origin: [40.725359, -74.011585]
+altitudes_ft: [150, 500]
+speed_mps: 8                  # one ground speed for both altitudes (sync_ground_track)
+seed: 2026
+look: standard                # or enhanced
+sync_ground_track: true
+max_yaw_rate_deg_s: 12
+frames: 768                   # 48 s at 16 fps
+motion_frames: 768
+buffer_m: 768                 # scene extent: the route buffered by this many metres
+waypoints_m: [[-24.1, -158.1], [-10.5, -70.1], [-10.2, -62.8], [-9.6, -57.0], [-6.9, -45.3], [0.0, 0.0], [0.8, 4.0], [2.7, 9.8], [5.3, 15.4], [7.5, 18.9], [9.9, 22.1], [14.1, 26.6], [17.2, 29.2], [22.3, 32.7], [25.9, 34.6], [31.6, 36.8], [37.6, 38.3], [41.6, 38.8], [47.8, 38.9], [53.8, 38.2], [59.8, 36.7], [65.5, 34.4], [70.8, 31.4], [74.1, 29.0], [77.2, 26.3], [171.4, -63.3]]

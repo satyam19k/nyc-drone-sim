@@ -242,15 +242,6 @@ places:
       transect:  {route_m: [[-210.0, -230.0], [160.0, 210.0]], yaw_offset_deg: 0, focus: {150: 0.72, 500: 0.45}}
       reverse:   {route_m: [[240.0, -190.0], [100.0, -160.0], [-30.0, -60.0], [-130.0, 100.0], [-210.0, 260.0]], yaw_offset_deg: -25, focus: {150: 0.5, 500: 0.5}}
       seaward:   {route_m: [[-210.0, 260.0], [-130.0, 100.0], [-30.0, -60.0], [100.0, -160.0], [240.0, -190.0]], yaw_offset_deg: -30, focus: {150: 0.5, 500: 0.5}}
-  hudson-park-run:
-    origin: [40.719955, -74.012988]
-    route_m: [[-45.0, -290.0], [-20.0, -150.0], [0.0, 0.0], [25.0, 150.0], [45.0, 280.0]]
-    buffer_m: 768
-    yaw_offset_deg: -15
-    focus: {150: 0.5, 500: 0.5}
-    motion_frames: 480
-    views:
-      reverse:   {route_m: [[45.0, 280.0], [25.0, 150.0], [0.0, 0.0], [-20.0, -150.0], [-45.0, -290.0]], yaw_offset_deg: 15, focus: {150: 0.5, 500: 0.5}}
   esplanade-run:
     origin: [40.712301, -74.018314]
     route_m: [[-40.0, -300.0], [-20.0, -200.0], [0.0, -50.0], [35.0, 200.0], [50.0, 300.0]]
@@ -260,18 +251,7 @@ places:
     motion_frames: 480
     views:
       inland:    {route_m: [[-40.0, -300.0], [-20.0, -200.0], [0.0, -50.0], [35.0, 200.0], [50.0, 300.0]], yaw_offset_deg: -55, focus: {150: 0.5, 500: 0.5}}
-  # Shore then street, chosen by nyc_drone_sim.shorestreet: 20 s along the Hudson River Park
-  # shoreline, one turn of 125 degrees, then 16 s along Canal Street. route_m is the ground track
-  # of the image-centre point; both altitudes share it at one ground speed.
-  canal-shore-street:
-    origin: [40.725359, -74.011585]
-    sync_ground_track: true
-    speed_mps: 8
-    max_yaw_rate_deg_s: 12
-    frames: 768
-    motion_frames: 768
-    buffer_m: 768
-    route_m: [[-24.1, -158.1], [-10.5, -70.1], [-10.2, -62.8], [-9.6, -57.0], [-6.9, -45.3], [0.0, 0.0], [0.8, 4.0], [2.7, 9.8], [5.3, 15.4], [7.5, 18.9], [9.9, 22.1], [14.1, 26.6], [17.2, 29.2], [22.3, 32.7], [25.9, 34.6], [31.6, 36.8], [37.6, 38.3], [41.6, 38.8], [47.8, 38.9], [53.8, 38.2], [59.8, 36.7], [65.5, 34.4], [70.8, 31.4], [74.1, 29.0], [77.2, 26.3], [171.4, -63.3]]
+  # canal-shore-street and hudson-park-run are route files in configs/routes/
 
 # Long clips along a place's route (path variant "long")
 long:

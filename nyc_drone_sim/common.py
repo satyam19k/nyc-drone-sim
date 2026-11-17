@@ -59,8 +59,32 @@ def view_spec(cfg: dict, view: str | None) -> dict:
     return {**place, **place["views"][view]}
 
 
+ROUTES_DIR = REPO_ROOT / "configs" / "routes"
+ROUTE_KEYS = ("altitudes_ft", "seed", "speed_mps", "sync_ground_track", "max_yaw_rate_deg_s", "frames",
+              "motion_frames", "buffer_m", "yaw_offset_deg", "focus", "look")
+
+
+def route_place(route: dict) -> dict:
+    """A route file (configs/routes/<name>.yaml) as a place. The origin must be [lat, lon] and the
+    waypoints in metres here; nyc_drone_sim.routes.resolve_route converts an address origin and
+    waypoints_lonlat first."""
+    origin = route["origin"]
+    if isinstance(origin, str) or "waypoints_m" not in route:
+        raise ValueError("this route has an address origin or waypoints_lonlat: "
+                         "fly it with nyc-drone route, which converts them")
+    place = {"origin": [float(origin[0]), float(origin[1])], "route_m": route["waypoints_m"],
+             **{k: route[k] for k in ROUTE_KEYS if k in route}}
+    place.setdefault("focus", {int(a): 0.5 for a in route.get("altitudes_ft", [150, 500])})
+    place.setdefault("yaw_offset_deg", 0.0)
+    if route.get("views"):
+        place["views"] = {name: {"route_m": v["waypoints_m"], **{k: x for k, x in v.items() if k != "waypoints_m"}}
+                          for name, v in route["views"].items()}
+    return place
+
+
 def for_location(cfg: dict, location: str) -> dict:
-    """Config for one location. A name listed under `places` gets its own origin and extent.
+    """Config for one location. A name listed under `places`, or with a route file in
+    configs/routes/, gets its own origin and extent.
 
     A place is either a circle (`radius_m`) or a corridor: `route_m`, a camera ground track in
     local metres from the origin, buffered by `buffer_m`. `scene_radius_m` then becomes the
@@ -68,10 +92,20 @@ def for_location(cfg: dict, location: str) -> dict:
     a bound keeps working; code that clips uses `extent_polygon`.
     """
     place = (cfg.get("places") or {}).get(location)
+    if place is None and (ROUTES_DIR / f"{location}.yaml").exists():
+        place = route_place(yaml.safe_load((ROUTES_DIR / f"{location}.yaml").read_text()))
     if place is None:
         return cfg
     out = dict(cfg)
     out["place"] = {**place, "name": location}
+    if "altitudes_ft" in place:
+        out["altitudes_ft"] = [int(a) for a in place["altitudes_ft"]]
+    if "seed" in place:
+        out["seed"] = int(place["seed"])
+    if "speed_mps" in place and not place.get("sync_ground_track"):
+        sp = place["speed_mps"]
+        out["speed_mps"] = ({int(k): float(v) for k, v in sp.items()} if isinstance(sp, dict)
+                            else {int(a): float(sp) for a in out["altitudes_ft"]})
     if "motion_frames" in place:      # recorded motion only needs to last as long as the place's clips
         out["populate"] = {**cfg["populate"], "frames": int(place["motion_frames"])}
     if "frames" in place:             # a place may set the length of its own long clip
