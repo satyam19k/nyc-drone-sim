@@ -20,7 +20,7 @@ imputation:
   neighbour_radius_m: 100
   floor_m: 3.0
 
-# Stage 1: open data
+# Data: buildings and location
 data:
   geosearch_url: https://geosearch.planninglabs.nyc/v2/search
   buildings_url: https://data.cityofnewyork.us/resource/5zhs-2jue
@@ -37,7 +37,7 @@ output:
   scenes_dir: runs/scenes
   runs_dir: runs
 
-# Stage 2: USD scene
+# USD scene
 scene:
   ground_side_factor: 4
   sun_intensity: 3000
@@ -80,7 +80,7 @@ scene:
     lane_line: [0.8, 0.8, 0.78]
     centre_line: [0.75, 0.55, 0.05]
 
-# Stage 4: camera paths
+# Camera paths
 paths:
   grid_res_m: 2.0
   grid_margin_m: 150
@@ -109,7 +109,7 @@ street:
   yaw_sigma_m: 40
   dense_step_m: 0.5
 
-# Stage 3: probe
+# Depth probe
 probe:
   ground_free_radius_m: 30
   ground_search_step_m: 2
@@ -120,7 +120,7 @@ probe:
   rt_subframes: 16
   clipping_range_m: [0.1, 10000]
 
-# Stage 5: render
+# Render
 render:
   rt_subframes: 4
   warmup_frames: 3

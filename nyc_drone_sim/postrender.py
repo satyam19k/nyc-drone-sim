@@ -1,4 +1,4 @@
-"""Stage 5 post-step, CPU: check each MP4 with ffprobe and re-encode from the PNG frames with
+"""After the render, CPU: check each MP4 with ffprobe and re-encode from the PNG frames with
 ffmpeg if its frame count or rate differs from the config (or the writer skipped encoding)."""
 from __future__ import annotations
 

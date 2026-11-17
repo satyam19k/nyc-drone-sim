@@ -2,7 +2,7 @@
 
   python scripts/populate_evidence.py --before run_003 --after run_005
 
-Writes under evidence/: a before/after still and a side-by-side clip per altitude, a contact
+Writes under docs/validation/images/: a before/after still and a side-by-side clip per altitude, a contact
 sheet (RGB, depth, segmentation) of one populated frame per altitude, and a close crop at the
 lower altitude. The two runs must share camera paths; the script refuses to compare otherwise.
 """
@@ -42,7 +42,7 @@ def main():
     a = ap.parse_args()
     cfg = load_config(a.config)
     slug = slugify(a.location)
-    ev = REPO / "evidence"
+    ev = REPO / "docs" / "validation" / "images"
     out = []
     for alt in cfg["altitudes_ft"]:
         alt = int(alt)

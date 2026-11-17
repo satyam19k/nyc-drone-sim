@@ -1,0 +1,86 @@
+{
+ "check": "populate",
+ "location": "hudson-park-run",
+ "passed": true,
+ "not_evaluated": [],
+ "run": "run_006",
+ "variant": "long",
+ "utc": "2026-11-16T06:09:57+00:00",
+ "checks": [
+  {
+   "id": "P1",
+   "status": "PASS",
+   "detail": "overlap with building footprints as a share of building area, judged per layer: roadbed 0.00%, sidewalk 0.19% (limit 1% each); the two together 0.19%"
+  },
+  {
+   "id": "P2",
+   "status": "PASS",
+   "detail": "3899 vehicles (3446 static, 453 moving, every one of 480 frames tested): footprints outside roadbed and parking lots 0, overlapping pairs 0, touching a building 0"
+  },
+  {
+   "id": "P3",
+   "status": "PASS",
+   "detail": "13458 on-street poses tested away from intersections: worst angle to the street 4.23 deg (limit 10), misaligned 0; 10166 moving poses, against the direction of travel 0"
+  },
+  {
+   "id": "P4",
+   "status": "PASS",
+   "detail": "4941 pedestrians (1762 walking, tested at 121 frames each): off sidewalk, plaza and crosswalk 0, inside a building 0, touching a vehicle 0"
+  },
+  {
+   "id": "P5",
+   "status": "PASS",
+   "detail": "2397 trees placed from 2256 records (421 recorded just inside the roadbed line were moved onto the kerb, 12 deeper in the roadbed or inside a building were not placed; 153 more were scattered over park lawns by rule); placed trees outside roadbed and buildings 100.0%; heights 3.0-22.4 m, median 7.1 m"
+  },
+  {
+   "id": "P6",
+   "status": "PASS",
+   "detail": "14018 placed models read back from the USD (placement list has 14018): largest |lowest z| 0.00 cm, over 5 cm: 0 []"
+  },
+  {
+   "id": "P7",
+   "status": "PASS",
+   "detail": "USD: 54460 meshes (model copies included) each resolve to one class {'boardwalk': 1, 'building': 994, 'furniture': 4715, 'ground': 1, 'lawn': 1, 'median': 1, 'parking': 1, 'path': 1, 'person': 18087, 'pier': 1, 'plaza': 1, 'road': 1, 'road_marking': 3, 'sidewalk': 1, 'vegetation': 4794, 'vehicle': 25856, 'water': 1}; without exactly one: 0; 150 ft render: classes in the segmentation ['BACKGROUND', 'UNLABELLED', 'boardwalk', 'building', 'furniture', 'ground', 'median', 'parking', 'person', 'pier', 'plaza', 'road', 'road_marking', 'sidewalk', 'vegetation', 'vehicle', 'water']; per class, visible objects whose pixel is labelled with the class: furniture 49/49, person 335/335, vegetation 74/75, vehicle 51/51; frames where a visible class is absent: none; ground-level classes ['boardwalk', 'ground', 'median', 'parking', 'pier', 'plaza', 'road', 'road_marking', 'sidewalk', 'water']; 500 ft render: classes in the segmentation ['BACKGROUND', 'UNLABELLED', 'boardwalk', 'building', 'furniture', 'ground', 'median', 'parking', 'person', 'pier', 'plaza', 'road', 'road_marking', 'sidewalk', 'vegetation', 'vehicle', 'water']; per class, visible objects whose pixel is labelled with the class: furniture 331/384, person 1294/1297, vegetation 504/504, vehicle 421/421; frames where a visible class is absent: none; ground-level classes ['boardwalk', 'ground', 'median', 'parking', 'pier', 'plaza', 'road', 'road_marking', 'sidewalk', 'water']"
+  },
+  {
+   "id": "P8",
+   "status": "PASS",
+   "detail": "two copies of veh_impala_1 (vehicle_00027, vehicle_00028) in one frame; instance_id: ids [95539] vs [95538], distinct True; instance: ids [4644] vs [730], distinct True"
+  },
+  {
+   "id": "P8c",
+   "status": "PASS",
+   "detail": "from the 150 ft clip, frame 240: vehicle_01170 (veh_taxi_0) and vehicle_01171 (veh_nypd_0), 6.0 m apart, projected with the saved camera pose; instance colours (252, 218, 70) vs (30, 238, 140), distinct True"
+  },
+  {
+   "id": "P9",
+   "status": "PASS",
+   "detail": "veh_stepvan_0 (vehicle_00006): roof 2.970 m above ground in its model file, camera at 45.72 m, expected depth 42.750 m, rendered 42.750 m (error 0.0 cm, limit 30); centre pixel class 'vehicle'"
+  },
+  {
+   "id": "P9c",
+   "status": "PASS",
+   "detail": "from the 150 ft clip: 4 flat-roofed vehicles, roof centre projected with the saved camera pose; largest depth error 7.7 cm (limit 30) on vehicle_01176 (veh_uspsllv_0) in frame 360: roof 2.150 m above ground, expected depth 94.180 m, rendered 94.257 m"
+  },
+  {
+   "id": "P10",
+   "status": "PASS",
+   "detail": "rebuilt with seed 2026: placement list identical True (14018 objects), file byte-identical True, recorded motion identical True, road paint identical True"
+  },
+  {
+   "id": "P11",
+   "status": "PASS",
+   "detail": "probe job: peak VRAM 3370 of 46068 MiB (7.3%), sampled every 0.5 s while the full scene loaded and rendered on NVIDIA L40S; scene load 1.8 s; 150 ft clip: 3691 MiB in use when the render ended (8.0%), 1.11 s per frame over 480 frames, load and warm-up 10 s, 274 of 2215 moving objects updated per frame; 500 ft clip: 3370 MiB in use when the render ended (7.3%), 1.19 s per frame over 480 frames, load and warm-up 10 s, 952 of 2215 moving objects updated per frame; limit 80% of the card"
+  },
+  {
+   "id": "P12",
+   "status": "PASS",
+   "detail": "data: exit 0, 9 checks, failed none, warnings none; scene: exit 0, 9 checks, failed none, warnings ['[WARN] scene-8']; probe: exit 0, 7 checks, failed none, warnings none; path: exit 0, 9 checks, failed none, warnings none; render: exit 0, 10 checks, failed none, warnings ['[WARN] render-6']"
+  },
+  {
+   "id": "P13",
+   "status": "PASS",
+   "detail": "sidewalk: overlap 0.19% of building area, one-sidedness 0.27 (0 even, 1 all on one side); best shift within 1 m is east +0.0, north +0.0 m, which removes 0% of the overlap (a real offset would remove far more than 15%); road: overlap 0.00% of building area, one-sidedness 0.81 (0 even, 1 all on one side); best shift within 1 m is east +0.0, north -0.5 m, which removes 52% of the overlap (a real offset would remove far more than 15%); overlap is under 0.1% of building area, too small to judge by ratio"
+  }
+ ]
+}

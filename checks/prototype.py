@@ -1,6 +1,6 @@
 """Measurements from the prototype shots: do converted models keep their scale, labels and
 instance ids in the renderer, do leaves cut out, and do moving objects stay in step across
-RGB, depth and segmentation. Writes reports/prototype_<location>.json; it reports numbers, it is not a gate."""
+RGB, depth and segmentation. Writes docs/validation/reports/prototype_<location>.json; it reports numbers and does not pass or fail."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ import sys
 import numpy as np
 from PIL import Image
 
-from _checks import REPO_ROOT, CheckList
+from _checks import REPO_ROOT, CheckList, IMAGES
 
 from nyc_drone_sim.common import load_config, scene_dir, slugify
 from nyc_drone_sim.paths import Pinhole
@@ -160,7 +160,7 @@ def main():
                 ax[r, c].set_title(f"{'straight down, 45.72 m' if r == 0 else 'oblique, 30 m'}: {t}", fontsize=9)
                 ax[r, c].axis("off")
         fig.suptitle("Prototype stage. Car rows from the bottom: moving car, plain references, instanceable references, point instancer", fontsize=10)
-        out = REPO_ROOT / "evidence" / f"populate_prototype_{slug}.png"
+        out = IMAGES / f"populate_prototype_{slug}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
         return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"

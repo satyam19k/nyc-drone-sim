@@ -1,4 +1,4 @@
-"""Stage 2: open data to USD. CPU only (usd-core); must not import isaacsim.
+"""Open data to USD. CPU only (usd-core); must not import isaacsim.
 
 One closed, outward-facing triangle mesh per building, extruded from z = 0 to height_m,
 plus ground, preview materials, semantic labels and lights. Metres, Z up.
@@ -18,12 +18,12 @@ from pxr import Gf, Sdf, Usd, UsdGeom, UsdLux, UsdShade, Vt
 from . import dress
 from .common import for_location, load_config, scene_dir, slugify
 
-log = logging.getLogger("stage2")
+log = logging.getLogger("scene")
 
 try:
     from pxr import UsdSemantics
     HAVE_USD_SEMANTICS = True
-except ImportError:  # labels are then applied in Stage 3
+except ImportError:  # labels are then applied when the probe renders
     HAVE_USD_SEMANTICS = False
 
 
@@ -335,7 +335,7 @@ def build_scene(features: list[dict], cfg: dict, out_usd: Path, sdir: Path | Non
     }
 
 
-def run_stage2(location: str, cfg: dict, out_dir: Path | None = None) -> Path:
+def build_scene(location: str, cfg: dict, out_dir: Path | None = None) -> Path:
     slug = slugify(location)
     cfg = for_location(cfg, location)
     sdir = out_dir or scene_dir(cfg, slug)
@@ -353,18 +353,18 @@ def run_stage2(location: str, cfg: dict, out_dir: Path | None = None) -> Path:
         "imputed_count": sum(bool(f["properties"]["height_imputed"]) for f in feats),
     })
     (sdir / "scene_meta.json").write_text(json.dumps(meta, indent=1, sort_keys=True) + "\n")
-    log.info("stage 2 done: %d buildings, %d triangles, %.1f MB -> %s", meta["building_count"],
+    log.info("scene done: %d buildings, %d triangles, %.1f MB -> %s", meta["building_count"],
              meta["triangle_count"], meta["file_bytes"] / 1e6, out_usd)
     return out_usd
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Stage 2: open data to USD")
+    ap = argparse.ArgumentParser(description="Open data to USD")
     ap.add_argument("--location", required=True)
     ap.add_argument("--config", default=None)
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    run_stage2(a.location, load_config(a.config))
+    build_scene(a.location, load_config(a.config))
 
 
 if __name__ == "__main__":

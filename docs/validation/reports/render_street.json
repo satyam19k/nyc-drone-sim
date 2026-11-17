@@ -1,0 +1,59 @@
+{
+ "check": "render",
+ "location": "120-broadway",
+ "passed": true,
+ "variant": "street",
+ "utc": "2026-11-15T23:23:55+00:00",
+ "checks": [
+  {
+   "id": "render-1",
+   "status": "PASS",
+   "detail": "150 ft: 5 folders x 640 PNGs at 1280x720; 5 MP4s at 640 frames, 16 fps (re-encoded: none); 500 ft: 5 folders x 640 PNGs at 1280x720; 5 MP4s at 640 frames, 16 fps (re-encoded: none)"
+  },
+  {
+   "id": "render-2",
+   "status": "PASS",
+   "detail": "150 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 640 frames; 500 ft: max position error 0.0000 cm, max orientation error 0.00000 deg over 640 frames"
+  },
+  {
+   "id": "render-3",
+   "status": "PASS",
+   "detail": "150 ft: 623 frames with ground over the whole centre block, centre depth 64.66 m (expected 64.7), worst altitude error 0.044%; 500 ft: 306 frames with ground over the whole centre block, centre depth 215.53 m (expected 215.5), worst altitude error 0.013%"
+  },
+  {
+   "id": "render-4",
+   "status": "PASS",
+   "detail": "150 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0; 500 ft: empty metric-depth pixels 0.0000%, sky/background pixels 0"
+  },
+  {
+   "id": "render-5",
+   "status": "PASS",
+   "detail": "150 ft: frame-to-frame mean abs difference min 3.038, mean 6.495, max 10.919 (4-sigma limit 13.996); 500 ft: frame-to-frame mean abs difference min 6.682, mean 10.650, max 13.352 (4-sigma limit 17.949)"
+  },
+  {
+   "id": "render-6",
+   "status": "PASS",
+   "detail": "150 ft: building share per frame min 19.3%, mean 47.0%, max 66.5%; 0 frames outside 5-95%; 150 ft mean share of other classes: furniture 0.26%, ground 9.27%, person 0.23%, plaza 9.12%, road 19.64%, road_marking 0.90%, sidewalk 12.32%, vegetation 0.14%, vehicle 1.43%; 500 ft: building share per frame min 47.5%, mean 80.6%, max 94.8%; 0 frames outside 5-95%; 500 ft mean share of other classes: furniture 0.08%, ground 1.92%, person 0.06%, plaza 1.57%, road 9.35%, road_marking 0.25%, sidewalk 4.07%, vegetation 1.43%, vehicle 0.41%"
+  },
+  {
+   "id": "render-7",
+   "status": "PASS",
+   "detail": "150 ft: PSNR of second frame-0 render against the clip's frame 0 = 44.35 dB; 500 ft: PSNR of second frame-0 render against the clip's frame 0 = 36.22 dB"
+  },
+  {
+   "id": "render-8",
+   "status": "PASS",
+   "detail": "docs/validation/images/render_120-broadway_150_street.png (629528 bytes); docs/validation/images/render_120-broadway_500_street.png (968313 bytes)"
+  },
+  {
+   "id": "render-9",
+   "status": "PASS",
+   "detail": "150 ft: colourised depth grey levels p1 80 to p99 148 (range 68); the scene's metric depth gives 68 on the 5-500 m scale, need >= 90% of it; 500 ft: colourised depth grey levels p1 24 to p99 126 (range 102); the scene's metric depth gives 102 on the 5-500 m scale, need >= 90% of it"
+  },
+  {
+   "id": "render-10",
+   "status": "PASS",
+   "detail": "150 ft: camera height from 36.9 M ground pixels in 80 frames: per-frame median 45.720 to 45.720 m (altitude 45.72 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%; 500 ft: camera height from 12.3 M ground pixels in 80 frames: per-frame median 152.400 to 152.400 m (altitude 152.4 m, worst error 0.000%, limit 1%); 100.00% of the pixels are within 1%"
+  }
+ ]
+}

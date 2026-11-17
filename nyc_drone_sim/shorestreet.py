@@ -232,7 +232,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     cfg = load_config(a.config)
     rows, n = score(cfg)
-    (REPO_ROOT / "reports" / "shore_street_scout.json").write_text(json.dumps({"candidates_built": n, "ranked": rows}, indent=1) + "\n")
+    (REPO_ROOT / "docs" / "validation" / "reports" / "shore_street_scout.json").write_text(json.dumps({"candidates_built": n, "ranked": rows}, indent=1) + "\n")
     print(f"{n} candidates built; top {len(rows)} that clear both altitudes:")
     for r in rows:
         print(f"{r['street']:<14} lanes {r['lanes']:.1f} turn {r['turn_deg']:>5} gap {r['gap_m']:>5} off {r['offset_m']:+.0f} street {r['street_len_m']:.0f} m "

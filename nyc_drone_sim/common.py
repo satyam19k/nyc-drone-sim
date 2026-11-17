@@ -11,6 +11,13 @@ DEFAULT_CONFIG = REPO_ROOT / "configs" / "default.yaml"
 FT_TO_M = 0.3048
 
 
+def validation_dir() -> Path:
+    """Where check reports and pictures go: docs/validation, or NYC_DRONE_VALIDATION_DIR when set
+    (the nyc-drone command sets it to the run's own folder, so a run does not change the repository)."""
+    import os
+    return Path(os.environ.get("NYC_DRONE_VALIDATION_DIR") or REPO_ROOT / "docs" / "validation")
+
+
 def load_config(path: str | Path | None = None) -> dict:
     with open(path or DEFAULT_CONFIG) as f:
         return yaml.safe_load(f)

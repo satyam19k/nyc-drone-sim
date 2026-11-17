@@ -1,9 +1,9 @@
 """Street-level layers from NYC Open Data, in the same local frame as the buildings. CPU only.
 
 Fetches ground surfaces (roadbed, sidewalk, median, plaza, park, parking lot, water), street
-centre lines, tree points and street-furniture points for the location that Stage 1 already
+centre lines, tree points and street-furniture points for the location that geo.py already
 resolved. Every layer is projected with the projection string stored in location.json, so it
-cannot drift from the buildings. Uses the same response cache as Stage 1.
+cannot drift from the buildings. Uses the same response cache as geo.py.
 """
 from __future__ import annotations
 

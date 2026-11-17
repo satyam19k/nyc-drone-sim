@@ -1,4 +1,4 @@
-"""Stage 4: drone camera paths. CPU only; must not import isaacsim.
+"""Drone camera paths. CPU only; must not import isaacsim.
 
 One collision-free camera path per altitude, chosen deterministically from a fixed
 candidate set and saved as plain data.
@@ -27,7 +27,7 @@ from shapely.strtree import STRtree
 from .common import (REPO_ROOT, altitude_m, clip_settings, extent_polygon, for_location, load_config, scene_dir,
                      slugify, variant_suffix, view_spec)
 
-log = logging.getLogger("stage4")
+log = logging.getLogger("paths")
 
 
 # ---------------------------------------------------------------------------
@@ -540,7 +540,7 @@ def path_file(sdir: Path, alt_ft, variant: str | None = None, view: str | None =
     return sdir / f"path_{int(alt_ft)}{variant_suffix(variant, view)}.json"
 
 
-def run_stage4(location: str, cfg: dict, out_dir: Path | None = None, variant: str | None = None,
+def plan_paths(location: str, cfg: dict, out_dir: Path | None = None, variant: str | None = None,
                view: str | None = None, altitudes=None) -> list[Path]:
     slug = slugify(location)
     cfg = for_location(cfg, location)
@@ -562,7 +562,7 @@ def run_stage4(location: str, cfg: dict, out_dir: Path | None = None, variant: s
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Stage 4: drone camera paths")
+    ap = argparse.ArgumentParser(description="Drone camera paths")
     ap.add_argument("--location", required=True)
     ap.add_argument("--config", default=None)
     ap.add_argument("--variant", default=None, choices=["street", "long"],
@@ -571,7 +571,7 @@ def main(argv=None):
     ap.add_argument("--altitude", type=int, action="append", help="limit to this altitude in feet; repeatable")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    run_stage4(a.location, load_config(a.config), variant=a.variant, view=a.view, altitudes=a.altitude)
+    plan_paths(a.location, load_config(a.config), variant=a.variant, view=a.view, altitudes=a.altitude)
 
 
 if __name__ == "__main__":

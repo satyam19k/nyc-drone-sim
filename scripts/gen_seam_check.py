@@ -1,6 +1,6 @@
 """Check every chunk join of a generated full clip, and draw the frames either side of each join.
 
-  python scripts/gen_seam_check.py --clip <output folder with out.mp4> [--sheet evidence/name.png]
+  python scripts/gen_seam_check.py --clip <output folder with out.mp4> [--sheet docs/validation/images/name.png]
 
 A join is the first frame of a chunk after the first: frames 93, 185, 277, ... for 93-frame chunks
 that overlap by one frame. For each join the change from the frame before is compared with the

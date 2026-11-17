@@ -500,24 +500,24 @@ def main():
         if not probe_result.exists():
             return None, MISSING
         det, ok = [], True
-        for st in (1, 2, 3, 4, 5):
-            if st == 3:
+        for st in ("data", "scene", "probe", "path", "render"):
+            if st == "probe":
                 res = sdir / "probe" / "probe_result.json"
                 if res.stat().st_mtime < (sdir / "scene.usdc").stat().st_mtime:
                     ok = False
-                    det.append("stage 3: probe outputs are older than the current scene.usdc")
+                    det.append("probe: probe outputs are older than the current scene.usdc")
                     continue
-            cmd = [sys.executable, str(REPO_ROOT / "checks" / f"stage_{st}.py"), "--location", a.location]
-            if st == 5:
+            cmd = [sys.executable, str(REPO_ROOT / "checks" / f"{st}.py"), "--location", a.location]
+            if st == "render":
                 cmd += ["--run", a.run]
-            if st in (4, 5) and a.variant:
+            if st in ("path", "render") and a.variant:
                 cmd += ["--variant", a.variant]
             r = subprocess.run(cmd, capture_output=True, text=True)
             lines_ = [ln for ln in r.stdout.splitlines() if ln.startswith("[")]
             fails = [ln.split(":")[0] for ln in lines_ if ln.startswith("[FAIL]")]
             warns = [ln.split(":")[0] for ln in lines_ if ln.startswith("[WARN]")]
             ok &= r.returncode == 0
-            det.append(f"stage {st}: exit {r.returncode}, {len(lines_)} checks, failed {fails or 'none'}, warnings {warns or 'none'}")
+            det.append(f"{st}: exit {r.returncode}, {len(lines_)} checks, failed {fails or 'none'}, warnings {warns or 'none'}")
         return ok, "; ".join(det)
 
     for gid, fn in [("P1", p1), ("P2", p2), ("P3", p3), ("P4", p4), ("P5", p5), ("P6", p6), ("P7", p7),

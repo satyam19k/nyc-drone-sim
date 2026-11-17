@@ -1,19 +1,25 @@
-"""Small pass/fail harness shared by the stage checks."""
+"""Small pass/fail harness shared by the checks."""
 from __future__ import annotations
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
+# Reports and pictures go to docs/validation, or to NYC_DRONE_VALIDATION_DIR when it is set
+# (the nyc-drone command sets it to the run's own folder).
+VALIDATION = Path(os.environ.get("NYC_DRONE_VALIDATION_DIR") or REPO_ROOT / "docs" / "validation")
+IMAGES, REPORTS = VALIDATION / "images", VALIDATION / "reports"
 
 
 class CheckList:
-    def __init__(self, stage: int, location: str, variant: str | None = None, run: str | None = None):
-        self.stage, self.location, self.variant, self.run_id = stage, location, variant, run
+    def __init__(self, name: str, location: str, variant: str | None = None, run: str | None = None):
+        self.name, self.location, self.variant, self.run_id = name, location, variant, run
         self.results: list[dict] = []
+        IMAGES.mkdir(parents=True, exist_ok=True)
 
     def check(self, gid: str, ok: bool, detail, warn: bool = False):
         status = "PASS" if ok else "FAIL"
@@ -42,18 +48,18 @@ class CheckList:
         passed = all(r["status"] != "FAIL" for r in self.results)
         skipped = [r["id"] for r in self.results if r["status"] == "NOT EVALUATED"]
         rep = {
-            "stage": self.stage, "location": self.location, "passed": passed, "not_evaluated": skipped,
+            "check": self.name, "location": self.location, "passed": passed, "not_evaluated": skipped,
             **({"run": self.run_id} if self.run_id else {}),
             **({"variant": self.variant} if self.variant else {}),
             "utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "checks": self.results,
         }
-        stem = f"stage_{self.stage}" if isinstance(self.stage, int) else str(self.stage)
+        stem = str(self.name)
         # keyed by everything that identifies what was checked, so checking one location or run
         # never overwrites the report of another
-        out = REPO_ROOT / "reports" / ("_".join([stem, self.location] + [p for p in (self.run_id, self.variant) if p]) + ".json")
-        out.parent.mkdir(exist_ok=True)
+        out = REPORTS / ("_".join([stem, self.location] + [p for p in (self.run_id, self.variant) if p]) + ".json")
+        out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(rep, indent=1, default=str) + "\n")
         note = f" ({len(skipped)} not evaluated: {', '.join(skipped)})" if skipped else ""
-        print(f"{stem.replace('_', ' ')}: {'PASSED' if passed else 'FAILED'}{note} -> {out}")
+        print(f"{stem} checks: {'PASSED' if passed else 'FAILED'}{note} -> {out}")
         return 0 if passed else 1

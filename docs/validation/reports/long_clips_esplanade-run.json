@@ -1,0 +1,191 @@
+{
+ "place": "esplanade-run",
+ "run": "run_006",
+ "altitudes": {
+  "150": {
+   "video": "runs/run_006/esplanade-run/150/clip_0000/rgb.mp4",
+   "frames": 480,
+   "predicted": {
+    "water": {
+     "mean": 0.7798,
+     "max": 0.9704
+    },
+    "park": {
+     "mean": 0.0963,
+     "max": 0.258
+    },
+    "road": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "walkway": {
+     "mean": 0.1059,
+     "max": 0.1807
+    },
+    "building": {
+     "mean": 0.0027,
+     "max": 0.0542
+    },
+    "other": {
+     "mean": 0.0152,
+     "max": 0.1366
+    },
+    "not_at_grade": {
+     "mean": 0.0,
+     "max": 0.0
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.8166,
+     "max": 0.9634
+    },
+    "park": {
+     "mean": 0.0575,
+     "max": 0.1399
+    },
+    "road": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "walkway": {
+     "mean": 0.0989,
+     "max": 0.1527
+    },
+    "building": {
+     "mean": 0.0043,
+     "max": 0.0953
+    },
+    "tree": {
+     "mean": 0.0069,
+     "max": 0.0286
+    },
+    "vehicle": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "person": {
+     "mean": 0.001,
+     "max": 0.0024
+    },
+    "furniture": {
+     "mean": 0.0,
+     "max": 0.0
+    },
+    "other": {
+     "mean": 0.0148,
+     "max": 0.0989
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "park"
+   ],
+   "road_marking_stability": {
+    "frames": 480,
+    "marking_pixels_min": 0,
+    "marking_pixels_max": 0,
+    "median_jump": 0.0,
+    "p99_jump": 0.0,
+    "max_jump": 0.0,
+    "frame_of_max": 1,
+    "frames_over_5pct": 0
+   },
+   "timeline": "docs/validation/images/timeline_esplanade-run_150.png",
+   "sheet": "docs/validation/images/sheet8_esplanade-run_150.png"
+  },
+  "500": {
+   "video": "runs/run_006/esplanade-run/500/clip_0000/rgb.mp4",
+   "frames": 480,
+   "predicted": {
+    "water": {
+     "mean": 0.4216,
+     "max": 0.4829
+    },
+    "park": {
+     "mean": 0.0802,
+     "max": 0.1126
+    },
+    "road": {
+     "mean": 0.071,
+     "max": 0.1238
+    },
+    "walkway": {
+     "mean": 0.1987,
+     "max": 0.2219
+    },
+    "building": {
+     "mean": 0.2041,
+     "max": 0.2308
+    },
+    "other": {
+     "mean": 0.0244,
+     "max": 0.0641
+    },
+    "not_at_grade": {
+     "mean": 0.0,
+     "max": 0.0
+    }
+   },
+   "measured": {
+    "water": {
+     "mean": 0.5123,
+     "max": 0.6316
+    },
+    "park": {
+     "mean": 0.0624,
+     "max": 0.126
+    },
+    "road": {
+     "mean": 0.0072,
+     "max": 0.0125
+    },
+    "walkway": {
+     "mean": 0.1336,
+     "max": 0.1687
+    },
+    "building": {
+     "mean": 0.2482,
+     "max": 0.4388
+    },
+    "tree": {
+     "mean": 0.0187,
+     "max": 0.0396
+    },
+    "vehicle": {
+     "mean": 0.0005,
+     "max": 0.0012
+    },
+    "person": {
+     "mean": 0.0016,
+     "max": 0.002
+    },
+    "furniture": {
+     "mean": 0.0001,
+     "max": 0.0003
+    },
+    "other": {
+     "mean": 0.0154,
+     "max": 0.053
+    }
+   },
+   "measured_over_10pct": [
+    "water",
+    "park",
+    "building"
+   ],
+   "road_marking_stability": {
+    "frames": 480,
+    "marking_pixels_min": 0,
+    "marking_pixels_max": 635,
+    "median_jump": 0.0175,
+    "p99_jump": 0.145,
+    "max_jump": 0.205,
+    "frame_of_max": 184,
+    "frames_over_5pct": 108
+   },
+   "timeline": "docs/validation/images/timeline_esplanade-run_500.png",
+   "sheet": "docs/validation/images/sheet8_esplanade-run_500.png"
+  }
+ }
+}

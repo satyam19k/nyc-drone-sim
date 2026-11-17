@@ -1,4 +1,4 @@
-"""Shared helpers for the video-model stage. Imports nothing heavier than NumPy and PyYAML."""
+"""Shared helpers for the video model. Imports nothing heavier than NumPy and PyYAML."""
 from __future__ import annotations
 
 import hashlib

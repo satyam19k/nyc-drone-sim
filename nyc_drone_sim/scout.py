@@ -100,7 +100,7 @@ def score(cfg: dict) -> dict:
             log.info("%s %d ft: %s; buildings mean %.0f%%; not at grade max %.1f%%; frames inside clearance %d",
                      name, a, {k: f"{summary[k]['max']:.0%}" for k in ("water", "park", "road", "building")},
                      100 * summary["building"]["mean"], 100 * summary["not_at_grade"]["max"], blocked)
-    out = REPO_ROOT / "reports" / "scout.json"
+    out = REPO_ROOT / "docs" / "validation" / "reports" / "scout.json"
     out.write_text(json.dumps({"place": sc["place"], "clip_frames": len(t), "candidates": res}, indent=1) + "\n")
     return res
 
@@ -128,7 +128,7 @@ def plot(cfg: dict):
     import matplotlib.pyplot as plt
     from matplotlib.collections import PolyCollection
     sc = cfg["scout"]
-    res = json.loads((REPO_ROOT / "reports" / "scout.json").read_text())["candidates"]
+    res = json.loads((REPO_ROOT / "docs" / "validation" / "reports" / "scout.json").read_text())["candidates"]
     sdir = scene_dir(cfg, slugify(sc["place"]))
     U = class_unions(sdir)
     fps = float(cfg["clip"]["fps"])
@@ -170,7 +170,7 @@ def plot(cfg: dict):
                 axx.legend(fontsize=6, loc="upper right", ncol=2)
             if i == n - 1:
                 axx.set_xlabel("time (s)", fontsize=8)
-    out = REPO_ROOT / "evidence" / f"scout_{slugify(sc['place'])}.png"
+    out = REPO_ROOT / "docs" / "validation" / "images" / f"scout_{slugify(sc['place'])}.png"
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
     return out

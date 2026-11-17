@@ -1,4 +1,4 @@
-"""Stage 5: render one clip bundle for one location and altitude. GPU, headless.
+"""Render one clip bundle for one location and altitude. GPU, headless.
 
 The camera is driven per frame from path_<altitude>.json (path_<altitude>_street.json with
 --variant street); the timeline is not used to move it.

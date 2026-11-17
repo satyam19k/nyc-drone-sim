@@ -1,0 +1,57 @@
+{
+ "check": "path",
+ "location": "hudson-park-run",
+ "passed": true,
+ "not_evaluated": [
+  "path-9"
+ ],
+ "variant": "long",
+ "utc": "2026-11-16T06:04:22+00:00",
+ "checks": [
+  {
+   "id": "path-1",
+   "status": "PASS",
+   "detail": "150 ft: max |z - 45.72| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg; 500 ft: max |z - 152.40| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg"
+  },
+  {
+   "id": "path-2",
+   "status": "PASS",
+   "detail": "from 36960 USD triangles and 14018 placed-model bounding boxes; 150 ft: nearest building surface 39.80 m; nearest placed model 43.90 m (People, top at 1.8 m); 500 ft: nearest building surface 91.28 m; nearest placed model 149.86 m (Furniture, top at 8.5 m); required >= 10 m"
+  },
+  {
+   "id": "path-3",
+   "status": "PASS",
+   "detail": "150 ft: speed 8.0000-8.0000 m/s (config 8), max yaw rate 0.15 deg/s (limit 20); 500 ft: speed 12.0000-12.0000 m/s (config 12), max yaw rate 0.27 deg/s (limit 20)"
+  },
+  {
+   "id": "path-4",
+   "status": "PASS",
+   "detail": "150 ft: 480 frames at 16.000 fps, 30.0000 s; 500 ft: 480 frames at 16.000 fps, 30.0000 s"
+  },
+  {
+   "id": "path-5",
+   "status": "PASS",
+   "detail": "150 ft: farthest corner ground hit 250.4 m from origin, corners outside the corridor by at most 0.0 m; 500 ft: farthest corner ground hit 632.8 m from origin, corners outside the corridor by at most 0.0 m; limit: inside the scene corridor"
+  },
+  {
+   "id": "path-6",
+   "status": "PASS",
+   "detail": "150 ft (route): not applicable; target in image in 40.4% of frames; 500 ft (route): not applicable; target in image in 33.5% of frames"
+  },
+  {
+   "id": "path-7",
+   "status": "PASS",
+   "detail": "150 ft: 73.740 x 45.747 deg; 500 ft: 73.740 x 45.747 deg"
+  },
+  {
+   "id": "path-8",
+   "status": "PASS",
+   "detail": "docs/validation/images/path_hudson-park-run_long.png (409920 bytes)"
+  },
+  {
+   "id": "path-9",
+   "status": "NOT EVALUATED",
+   "detail": "not evaluated: this clip does not share a ground track between altitudes"
+  }
+ ]
+}

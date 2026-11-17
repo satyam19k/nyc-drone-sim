@@ -108,7 +108,7 @@ def main():
                    + ("  smooth depth" if r.get("smooth_depth") else "") + f"   structure {s['structure']:.2f}   land ripple {s['ripple_land']:.2f}")
             rows.append(np.hstack([label(frame(mp4, k), tag if i == 0 else f"{r['name']}, frame {first + k}") for i, k in enumerate(SHOW)]))
     sheet = cv2.resize(np.vstack(rows), None, fx=0.4, fy=0.4, interpolation=cv2.INTER_AREA)
-    png = REPO / "evidence" / f"gen_{g['grid_name']}_{bdir.parent.name}_{bdir.name}.png"
+    png = REPO / "docs" / "validation" / "images" / f"gen_{g['grid_name']}_{bdir.parent.name}_{bdir.name}.png"
     cv2.imwrite(str(png), sheet)
     (out / "scores.json").write_text(json.dumps(scores, indent=1) + "\n")
     print(f"{'run':4s} {'window':9s} {'structure':>9s} {'min':>5s} {'land ripple':>11s} {'with water':>10s}")

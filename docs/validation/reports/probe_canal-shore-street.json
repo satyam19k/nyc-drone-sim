@@ -1,0 +1,44 @@
+{
+ "check": "probe",
+ "location": "canal-shore-street",
+ "passed": true,
+ "not_evaluated": [],
+ "utc": "2026-11-16T06:33:22+00:00",
+ "checks": [
+  {
+   "id": "probe-1",
+   "status": "PASS",
+   "detail": "ground_150ft: centre depth 45.7200 m, expected 45.72 m +/- 0.25 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-2",
+   "status": "PASS",
+   "detail": "ground_500ft: centre depth 152.4000 m, expected 152.40 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-3",
+   "status": "PASS",
+   "detail": "roof: centre depth 50.0000 m, expected 50.00 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-4",
+   "status": "PASS",
+   "detail": "ground_150ft: centre 'sidewalk' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'road_marking': 0.0246, 'ground': 0.2709, 'boardwalk': 0.0827, 'median': 0.0145, 'pier': 0.0088, 'road': 0.3235, 'sidewalk': 0.1985, 'water': 0.0476, 'person': 0.0019, 'vegetation': 0.0195, 'vehicle': 0.0066, 'furniture': 0.0008}; ground_500ft: centre 'sidewalk' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'building': 0.1057, 'road_marking': 0.0105, 'ground': 0.1082, 'boardwalk': 0.0248, 'lawn': 0.0194, 'median': 0.0102, 'parking': 0.0005, 'pier': 0.0041, 'road': 0.1835, 'sidewalk': 0.0983, 'water': 0.3629, 'person': 0.0007, 'vegetation': 0.0628, 'vehicle': 0.0076, 'furniture': 0.0008}; roof: centre 'building' (expected 'building'), unlabelled 0.00%, shares {'building': 0.4668, 'road_marking': 0.0134, 'ground': 0.0772, 'lawn': 0.0039, 'median': 0.0311, 'road': 0.2691, 'sidewalk': 0.0715, 'person': 0.0007, 'vegetation': 0.0553, 'vehicle': 0.0097, 'furniture': 0.0013}"
+  },
+  {
+   "id": "probe-5",
+   "status": "PASS",
+   "detail": "ground_150ft: mean 192.3, clipped 0.00%; ground_500ft: mean 150.2, clipped 0.00%; roof: mean 163.0, clipped 0.00%"
+  },
+  {
+   "id": "probe-6",
+   "status": "PASS",
+   "detail": "peak 3105 MiB of 46068 MiB (6.7%) on NVIDIA L40S; scene load 1.5 s"
+  },
+  {
+   "id": "probe-7",
+   "status": "PASS",
+   "detail": "docs/validation/images/probe_canal-shore-street.png (565765 bytes)"
+  }
+ ]
+}

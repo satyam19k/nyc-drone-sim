@@ -2,11 +2,11 @@
 
   python scripts/long_clip_report.py --location battery-shoreline --run run_006
 
-For each altitude it writes under evidence/:
+For each altitude it writes under docs/validation/images/:
   timeline_<place>_<alt>.png  class shares predicted from the ground footprint, beside the shares
                               measured in the rendered segmentation
   sheet8_<place>_<alt>.png    eight evenly spaced frames as RGB, depth and segmentation
-and reports/long_clips_<place>.json with the numbers, including a frame-by-frame test of whether
+and docs/validation/reports/long_clips_<place>.json with the numbers, including a frame-by-frame test of whether
 road markings flicker.
 """
 from __future__ import annotations
@@ -107,7 +107,7 @@ def main():
         for q in ax:
             q.set_xlabel("time (s)", fontsize=8)
             q.set_ylabel("share of frame (%)", fontsize=8)
-        out = REPO / "evidence" / f"timeline_{slug}_{alt}{tag}.png"
+        out = REPO / "docs" / "validation" / "images" / f"timeline_{slug}_{alt}{tag}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
 
@@ -120,7 +120,7 @@ def main():
             for r, mname in enumerate(("rgb", "depth", "segmentation")):
                 im = Image.open(B / "clip_0000" / mname / f"{mname}_{i:04d}.png").convert("RGB").resize((W, H), Image.LANCZOS)
                 sheet.paste(im, (c * (W + 4), 18 + r * (H + 4)))
-        sout = REPO / "evidence" / f"sheet8_{slug}_{alt}{tag}.png"
+        sout = REPO / "docs" / "validation" / "images" / f"sheet8_{slug}_{alt}{tag}.png"
         sheet.save(sout)
         report["altitudes"][alt] = {"video": str(B / "clip_0000" / "rgb.mp4"), "frames": n, "predicted": psum, "measured": summ,
                                     "measured_over_10pct": [k for k in ("water", "park", "road", "building") if summ[k]["max"] >= 0.10],
@@ -129,7 +129,7 @@ def main():
         print(f"{alt} ft: measured max {({k: f'{summ[k]['max']:.0%}' for k in ('water', 'park', 'road', 'building')})}, "
               f"buildings mean {summ['building']['mean']:.0%}; objects mean tree {summ['tree']['mean']:.1%}, vehicle "
               f"{summ['vehicle']['mean']:.2%}, person {summ['person']['mean']:.2%}; markings {shimmer}")
-    (REPO / "reports" / f"long_clips_{slug}{tag}.json").write_text(json.dumps(report, indent=1) + "\n")
+    (REPO / "docs" / "validation" / "reports" / f"long_clips_{slug}{tag}.json").write_text(json.dumps(report, indent=1) + "\n")
 
 
 if __name__ == "__main__":

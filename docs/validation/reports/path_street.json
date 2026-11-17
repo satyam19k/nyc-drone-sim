@@ -1,0 +1,49 @@
+{
+ "check": "path",
+ "location": "120-broadway",
+ "passed": true,
+ "variant": "street",
+ "utc": "2026-11-15T22:05:32+00:00",
+ "checks": [
+  {
+   "id": "path-1",
+   "status": "PASS",
+   "detail": "150 ft: max |z - 45.72| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg; 500 ft: max |z - 152.40| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg"
+  },
+  {
+   "id": "path-2",
+   "status": "PASS",
+   "detail": "from 39576 USD triangles and 14436 placed-model bounding boxes; 150 ft: nearest building surface 17.46 m; nearest placed model 37.22 m (Furniture, top at 8.5 m); 500 ft: nearest building surface 17.98 m; nearest placed model 130.19 m (Vegetation, top at 22.2 m); required >= 10 m"
+  },
+  {
+   "id": "path-3",
+   "status": "PASS",
+   "detail": "150 ft: speed 7.9995-8.0000 m/s (config 8), max yaw rate 7.39 deg/s; 500 ft: speed 11.9995-12.0000 m/s (config 12), max yaw rate 6.82 deg/s"
+  },
+  {
+   "id": "path-4",
+   "status": "PASS",
+   "detail": "150 ft: 640 frames at 16.000 fps, 40.0000 s; 500 ft: 640 frames at 16.000 fps, 40.0000 s"
+  },
+  {
+   "id": "path-5",
+   "status": "PASS",
+   "detail": "150 ft: farthest corner ground hit 396.8 m from origin; 500 ft: farthest corner ground hit 622.2 m from origin; limit 800 m"
+  },
+  {
+   "id": "path-6",
+   "status": "PASS",
+   "detail": "150 ft (street): not applicable; target in image in 0.0% of frames; 500 ft (street): not applicable; target in image in 37.7% of frames"
+  },
+  {
+   "id": "path-7",
+   "status": "PASS",
+   "detail": "150 ft: 73.740 x 45.747 deg; 500 ft: 73.740 x 45.747 deg"
+  },
+  {
+   "id": "path-8",
+   "status": "PASS",
+   "detail": "docs/validation/images/path_120-broadway_street.png (721282 bytes)"
+  }
+ ]
+}

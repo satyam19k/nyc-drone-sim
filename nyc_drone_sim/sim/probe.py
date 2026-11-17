@@ -1,5 +1,5 @@
-"""Stage 3: load scene.usdc in Isaac Sim and render nadir probes (RGB, metric depth,
-semantic segmentation). GPU, headless. Evaluation happens in checks/stage_3.py."""
+"""Load scene.usdc in Isaac Sim and render nadir probes (RGB, metric depth,
+semantic segmentation). GPU, headless. Evaluation happens in checks/probe.py."""
 from __future__ import annotations
 
 import argparse

@@ -1,4 +1,4 @@
-"""Stage 1: location to open data. CPU only; must not import isaacsim.
+"""Location to open data. CPU only; must not import isaacsim.
 
 geocode -> bounding box -> paged fetch of NYC BUILDING (5zhs-2jue) -> local metres
 -> height normalisation and imputation -> buildings.geojson.
@@ -22,10 +22,10 @@ from scipy.spatial import cKDTree
 from shapely.geometry import MultiPolygon, Point, Polygon, mapping, shape
 from shapely.geometry.polygon import orient
 
-from .common import (FT_TO_M, REPO_ROOT, extent_polygon, for_location, load_config, location_query,
+from .common import (FT_TO_M, REPO_ROOT, validation_dir, extent_polygon, for_location, load_config, location_query,
                      scene_dir, slugify)
 
-log = logging.getLogger("stage1")
+log = logging.getLogger("geo")
 
 REQUIRED_FIELDS = [
     "height_roof", "ground_elevation", "feature_code", "bin", "doitt_id",
@@ -355,7 +355,7 @@ def plot_footprints(rows: list[dict], loc: dict, R: float, out_png: Path, title:
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
-def run_stage1(location: str, cfg: dict, out_dir: Path | None = None, offline: bool = False,
+def fetch_location(location: str, cfg: dict, out_dir: Path | None = None, offline: bool = False,
                evidence: bool = True) -> Path:
     slug = slugify(location)
     cfg = for_location(cfg, location)
@@ -384,20 +384,20 @@ def run_stage1(location: str, cfg: dict, out_dir: Path | None = None, offline: b
     (out / "location.json").write_text(json.dumps(location_json, indent=1, sort_keys=True) + "\n")
     (out / "cache_manifest.json").write_text(json.dumps(http.used, indent=1) + "\n")
     if evidence:
-        plot_footprints(rows, loc, R, REPO_ROOT / "evidence" / f"stage_1_{slug}.png")
-    log.info("stage 1 done: %d fetched, %d kept, %d imputed -> %s",
+        plot_footprints(rows, loc, R, validation_dir() / "images" / f"data_{slug}.png")
+    log.info("data done: %d fetched, %d kept, %d imputed -> %s",
              len(raw), len(rows), report["stats"]["imputed"], out)
     return out
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Stage 1: location to open data")
+    ap = argparse.ArgumentParser(description="Location to open data")
     ap.add_argument("--location", required=True)
     ap.add_argument("--config", default=None)
     ap.add_argument("--offline", action="store_true")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    run_stage1(a.location, load_config(a.config), offline=a.offline)
+    fetch_location(a.location, load_config(a.config), offline=a.offline)
 
 
 if __name__ == "__main__":

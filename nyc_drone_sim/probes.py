@@ -1,4 +1,4 @@
-"""Probe point selection for Stage 3. CPU only, from Stage 1 data, no rendering."""
+"""Probe point selection for the depth probe. CPU only, from the building data, no rendering."""
 from __future__ import annotations
 
 import argparse

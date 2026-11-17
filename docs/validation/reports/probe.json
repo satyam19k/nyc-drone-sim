@@ -1,0 +1,43 @@
+{
+ "check": "probe",
+ "location": "rockefeller-park-transect",
+ "passed": true,
+ "utc": "2026-11-15T17:13:40+00:00",
+ "checks": [
+  {
+   "id": "probe-1",
+   "status": "PASS",
+   "detail": "ground_150ft: centre depth 45.7200 m, expected 45.72 m +/- 0.25 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-2",
+   "status": "PASS",
+   "detail": "ground_500ft: centre depth 152.4000 m, expected 152.40 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-3",
+   "status": "PASS",
+   "detail": "roof: centre depth 50.0000 m, expected 50.00 m +/- 0.5 (annotator distance_to_image_plane, stage metersPerUnit 1.0)"
+  },
+  {
+   "id": "probe-4",
+   "status": "PASS",
+   "detail": "ground_150ft: centre 'sidewalk' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'road_marking': 0.0002, 'ground': 0.0, 'boardwalk': 0.0712, 'lawn': 0.4372, 'path': 0.2225, 'pier': 0.0149, 'road': 0.0119, 'sidewalk': 0.1493, 'water': 0.0568, 'furniture': 0.0005, 'vegetation': 0.0306, 'vehicle': 0.0036, 'person': 0.0013}; ground_500ft: centre 'sidewalk' (expected 'ground', any ground-level class), unlabelled 0.00%, shares {'building': 0.1938, 'road_marking': 0.0029, 'ground': 0.0226, 'boardwalk': 0.0262, 'lawn': 0.1366, 'path': 0.0657, 'pier': 0.0044, 'road': 0.0442, 'sidewalk': 0.0827, 'water': 0.3667, 'furniture': 0.0003, 'vegetation': 0.0491, 'vehicle': 0.0041, 'person': 0.0005}; roof: centre 'building' (expected 'building'), unlabelled 0.00%, shares {'building': 0.4974, 'ground': 0.1219, 'boardwalk': 0.0306, 'lawn': 0.1016, 'path': 0.0594, 'pier': 0.005, 'road': 0.0109, 'sidewalk': 0.0566, 'water': 0.1072, 'vegetation': 0.0087, 'person': 0.0006}"
+  },
+  {
+   "id": "probe-5",
+   "status": "PASS",
+   "detail": "ground_150ft: mean 173.2, clipped 0.00%; ground_500ft: mean 133.9, clipped 0.00%; roof: mean 152.6, clipped 0.00%"
+  },
+  {
+   "id": "probe-6",
+   "status": "PASS",
+   "detail": "peak 2940 MiB of 46068 MiB (6.4%) on NVIDIA L40S; scene load 2.7 s"
+  },
+  {
+   "id": "probe-7",
+   "status": "PASS",
+   "detail": "docs/validation/images/probe_rockefeller-park-transect.png (626882 bytes)"
+  }
+ ]
+}

@@ -1,0 +1,54 @@
+{
+ "check": "scene",
+ "location": "hudson-park-run",
+ "passed": true,
+ "not_evaluated": [],
+ "utc": "2026-11-16T06:03:20+00:00",
+ "checks": [
+  {
+   "id": "scene-1",
+   "status": "PASS",
+   "detail": "metersPerUnit=1.0, upAxis=Z"
+  },
+  {
+   "id": "scene-2",
+   "status": "PASS",
+   "detail": "UsdValidation (successor of UsdUtils.ComplianceChecker, which usd-core 0.26.11 no longer ships): 30 validators, 0 errors, 0 warnings"
+  },
+  {
+   "id": "scene-3",
+   "status": "PASS",
+   "detail": "USD building meshes 994, data step kept 994"
+  },
+  {
+   "id": "scene-4",
+   "status": "PASS",
+   "detail": "over 994 meshes: max |zmin - 0| = 0.00e+00 m, max |zmax - height_m| = 1.45e-05 m"
+  },
+  {
+   "id": "scene-5",
+   "status": "PASS",
+   "detail": "50 random meshes (seed 2026): worst relative volume error 3.00e-06 (B_827586), negative volumes 0; over all 994 meshes worst 1.23e-05"
+  },
+  {
+   "id": "scene-6",
+   "status": "PASS",
+   "detail": "top-down IoU at 1 m/px = 1.00000 (USD 733703 px, footprints 733703 px)"
+  },
+  {
+   "id": "scene-7",
+   "status": "PASS",
+   "detail": "class labels resolved per mesh: {'building': 994, 'ground': 1, 'boardwalk': 1, 'lawn': 1, 'median': 1, 'parking': 1, 'path': 1, 'pier': 1, 'plaza': 1, 'road': 1, 'sidewalk': 1, 'water': 1, 'road_marking': 3}; meshes without exactly one label: 0 []"
+  },
+  {
+   "id": "scene-8",
+   "status": "WARN",
+   "detail": "81101095 triangles drawn (807953 stored once, the rest are repeated copies of placed models), scene.usdc 7.47 MB"
+  },
+  {
+   "id": "scene-9",
+   "status": "PASS",
+   "detail": "docs/validation/images/scene_hudson-park-run.png (350734 bytes)"
+  }
+ ]
+}

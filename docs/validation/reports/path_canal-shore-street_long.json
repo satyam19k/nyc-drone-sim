@@ -1,0 +1,55 @@
+{
+ "check": "path",
+ "location": "canal-shore-street",
+ "passed": true,
+ "not_evaluated": [],
+ "variant": "long",
+ "utc": "2026-11-16T06:34:25+00:00",
+ "checks": [
+  {
+   "id": "path-1",
+   "status": "PASS",
+   "detail": "150 ft: max |z - 45.72| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg; 500 ft: max |z - 152.40| = 0.0e+00 m; matrix translation = position; rotation orthonormal; pitch -45.000 deg"
+  },
+  {
+   "id": "path-2",
+   "status": "PASS",
+   "detail": "from 48512 USD triangles and 12478 placed-model bounding boxes; 150 ft: nearest building surface 23.95 m; nearest placed model 27.30 m (Vegetation, top at 18.4 m); 500 ft: nearest building surface 119.56 m; nearest placed model 139.26 m (Vegetation, top at 13.4 m); required >= 10 m"
+  },
+  {
+   "id": "path-3",
+   "status": "PASS",
+   "detail": "150 ft: image-centre ground point speed 7.9999-8.0000 m/s (config 8.0); camera speed 8.00-11.35 m/s (not held constant: it swings through the turn), max yaw rate 10.07 deg/s (limit 12); 500 ft: image-centre ground point speed 7.9999-8.0000 m/s (config 8.0); camera speed 8.00-27.97 m/s (not held constant: it swings through the turn), max yaw rate 10.07 deg/s (limit 12)"
+  },
+  {
+   "id": "path-4",
+   "status": "PASS",
+   "detail": "150 ft: 768 frames at 16.000 fps, 48.0000 s; 500 ft: 768 frames at 16.000 fps, 48.0000 s"
+  },
+  {
+   "id": "path-5",
+   "status": "PASS",
+   "detail": "150 ft: farthest corner ground hit 279.0 m from origin, corners outside the corridor by at most 0.0 m; 500 ft: farthest corner ground hit 523.0 m from origin, corners outside the corridor by at most 0.0 m; limit: inside the scene corridor"
+  },
+  {
+   "id": "path-6",
+   "status": "PASS",
+   "detail": "150 ft (route): not applicable; target in image in 24.9% of frames; 500 ft (route): not applicable; target in image in 80.6% of frames"
+  },
+  {
+   "id": "path-7",
+   "status": "PASS",
+   "detail": "150 ft: 73.740 x 45.747 deg; 500 ft: 73.740 x 45.747 deg"
+  },
+  {
+   "id": "path-8",
+   "status": "PASS",
+   "detail": "docs/validation/images/path_canal-shore-street_long.png (316846 bytes)"
+  },
+  {
+   "id": "path-9",
+   "status": "PASS",
+   "detail": "image-centre ground points at 150 ft and 500 ft: largest separation 0.0000 m over 768 frames (limit 1 m); against the planned track: 0.0000 m"
+  }
+ ]
+}
