@@ -1,7 +1,10 @@
-"""Generate one full clip with the video model, by one of three methods. Needs a GPU.
+"""Generate a clip with the video model. Needs an 80 GB GPU.
 
   python -m nyc_drone_sim.gen.makeclip --run-folder runs/run_009/canal-shore-street --altitude 150 \
-      --weather clear --setting K2 --method windows|pieces|chain
+      --weather clear --setting K2 --method window|windows|pieces|chain [--start 0]
+
+window   One 93-frame window from --start, the model's own clip length: the default of the
+         generate step. The methods below restyle a whole clip and are experimental.
 
 chain    One run of the model over the whole clip. The model works in 93-frame chunks and starts
          each chunk from the last frame of the one before, so a fault in one chunk carries into
@@ -282,6 +285,42 @@ def run_windows(bdir: Path, weather: str, setting_name: str, cfg: dict, piece: i
     return 0
 
 
+def run_window(bdir: Path, weather: str, setting_name: str, cfg: dict, start: int = 0) -> int:
+    """One 93-frame window from `start`, generated alone from its own controls and prompt."""
+    p = prompts()
+    setting = p["settings"][setting_name]
+    n = video_info(bdir / "clip_0000" / "rgb.mp4")["frames"]
+    if start < 0 or start + WINDOW > n:
+        raise SystemExit(f"--start {start}: a {WINDOW}-frame window must fit in the clip's {n} frames (0 to {n - WINDOW})")
+    name = f"one_{start:04d}"
+    w = bdir / "gen" / "windows" / name
+    if not (w / "window.json").exists():
+        from .windows import cut_window
+        cut_window(bdir, name, start, WINDOW, cfg)
+    prompt, wet = prompt_for(bdir, weather, start, WINDOW, p)
+    edge_file = "edges_rendered.mp4" if setting["edge"] == "rendered" else "edges_geometry.mp4"
+    final = unique_dir(model_dir(bdir, cfg) / f"{weather}_{setting_name}_window_{start:04d}")
+    work = final.with_name(final.name + ".tmp_" + time.strftime("%Y%m%d_%H%M%S"))
+    work.mkdir(parents=True)
+    spec = base_spec(setting, cfg, "out", prompt, w / "rgb.mp4", w / "depth_control.mp4", w / edge_file, w / "segmentation.mp4")
+    (work / "spec.json").write_text(json.dumps(spec, indent=1) + "\n")
+    t0 = time.time()
+    rc = run_batch([work / "spec.json"], work, cfg, log=work / "run.log")
+    if rc != 0 or not (work / "out.mp4").exists():
+        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, window from frame {start}",
+                   f"- exit code {rc}; kept in `{work}`"])
+        return 1
+    (work / "clip.json").write_text(json.dumps({
+        "method": "window", "start": start, "frames": WINDOW, "scene": scene_name(bdir), "altitude_ft": int(bdir.name),
+        "weather": weather, "setting": setting_name, "setting_values": setting, "seed": int(cfg["sampling"]["seed"]),
+        "prompt": prompt, "water_in_frame": wet, "seconds": round(time.time() - t0, 1),
+        "model_commit": cfg["model"]["commit"], "bundle_sha256": bundle_hash(bdir)}, indent=1) + "\n")
+    work.rename(final)
+    summarise([f"## {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, frames {start} to {start + WINDOW - 1}",
+               f"- video: `{final / 'out.mp4'}`", f"- generation time {(time.time() - t0) / 60:.0f} min"])
+    return 0
+
+
 def run_chain(bdir: Path, weather: str, setting_name: str, cfg: dict, cond: int = 1) -> int:
     p = prompts()
     setting = p["settings"][setting_name]
@@ -325,7 +364,9 @@ def main() -> int:
     ap.add_argument("--altitude", type=int, required=True)
     ap.add_argument("--weather", required=True)
     ap.add_argument("--setting", required=True)
-    ap.add_argument("--method", required=True, choices=["windows", "pieces", "chain"])
+    ap.add_argument("--method", required=True, choices=["window", "windows", "pieces", "chain"],
+                    help="window: one 93-frame window from --start; the others (whole clip) are experimental")
+    ap.add_argument("--start", type=int, default=0, help="with --method window: its first frame")
     ap.add_argument("--piece-frames", type=int, default=185, help="with --method pieces: frames per independent piece")
     ap.add_argument("--cond-frames", type=int, default=1, choices=[1, 2], help="with --method chain: frames of the previous chunk each chunk starts from")
     ap.add_argument("--config", default=None)
@@ -334,6 +375,8 @@ def main() -> int:
     method = a.method
     b = bundle_dir(a.run_folder, a.altitude)
     print(f"{time.strftime('%F %T')} {scene_name(b)} {a.altitude} ft {a.weather} {a.setting}: method {method}", flush=True)
+    if method == "window":
+        return run_window(b, a.weather, a.setting, cfg, start=a.start)
     if method == "windows":
         return run_windows(b, a.weather, a.setting, cfg)
     if method == "pieces":

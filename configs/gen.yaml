@@ -83,8 +83,7 @@ window:
   smooth_crf: 4            # encode the dithered picture nearly losslessly, or the encoder smears it
 
 # The generate step: the named setting (configs/gen_prompts_windows.yaml) used for each weather
-# when none is given.
+# when none is given. Only clear is offered by nyc-drone for now.
 generate:
   default_setting: {clear: K2, snow: t4, fog: w53, rain: w53}
-  method: windows
 

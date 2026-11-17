@@ -81,8 +81,11 @@ class _VramSampler:
 
     def _run(self):
         while not self._stop.is_set():
-            r = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
-                               capture_output=True, text=True)
+            try:
+                r = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                                   capture_output=True, text=True)
+            except OSError:                       # no nvidia-smi here: no samples
+                return
             vals = [int(v) for v in r.stdout.split() if v.isdigit()]
             if vals:
                 self.peak = max(self.peak or 0, max(vals))

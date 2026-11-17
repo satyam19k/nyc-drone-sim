@@ -1,16 +1,19 @@
-"""One command from an address to drone videos.
+"""One command from an address, or a route file, to drone videos. Everything runs on this machine.
 
     nyc-drone run --address "175 5th Avenue, Manhattan" --altitude-ft 150 500 --duration-s 30
+    nyc-drone route configs/routes/hudson-park-run.yaml
+    nyc-drone reproduce canal-shore-street
 
-`run` does everything; `scene`, `render`, `generate` and `check` do one part each and take the
-same options. The command only resolves options into a config file and calls the existing
-modules in order; how scenes, paths and renders are computed is not changed here.
+`run` and `route` do everything; `reproduce` flies a route from configs/routes/ and compares its
+camera poses with the saved ones; `scene`, `render`, `generate` and `check` do one part each and
+take the same options. The command only resolves options into a config file and calls the
+existing modules in order; how scenes, paths and renders are computed is not changed here.
 
 Everything a run produces is under --out:
 
     scene.usd  flight.json  report.json  side_by_side.mp4  config.yaml
     <altitude>/rgb.mp4 depth.mp4 segmentation.mp4 edges.mp4 camera_poses.json
-    <altitude>/weather/<weather>.mp4     with --realism model
+    <altitude>/weather/clear_window_<start>.mp4   with --realism model (one 93-frame window)
     work/      the intermediate files of every step
 """
 from __future__ import annotations
@@ -20,6 +23,7 @@ import copy
 import json
 import math
 import os
+import importlib.util
 import shlex
 import shutil
 import subprocess
@@ -30,8 +34,10 @@ from pathlib import Path
 import yaml
 
 from .common import REPO_ROOT, load_config, slugify
+from . import routes as routes_mod
 
-STEPS = ("run", "scene", "render", "generate", "check")
+COMMANDS = ("run", "route", "reproduce", "scene", "render", "generate", "check")
+POSE_TOLERANCE = (0.05, 0.2)    # metres, degrees: the render check's own limits for camera pose
 VIDEOS = ("rgb", "depth", "segmentation", "edges")
 # Measured on this project's hardware; used only for the --dry-run estimate.
 RENDER_S_PER_FRAME = 1.25       # L40S, 1280x720, populated 800 m scene (measured 1.16 to 1.31)
@@ -41,7 +47,11 @@ SCENE_BUILD_MIN = (15, 60)      # CPU, 800 m scene; depends on the node's load
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="nyc-drone", description=__doc__.split("\n\n")[0])
-    ap.add_argument("step", choices=STEPS, help="run = scene, render, generate (with --realism model) and check, in order")
+    ap.add_argument("command", choices=COMMANDS,
+                    help="run: scene, render, generate (with --realism model) and check, for --address; "
+                         "route FILE: the same for a route file; reproduce NAME: route configs/routes/NAME.yaml "
+                         "and compare the camera poses with NAME.expected_poses.json")
+    ap.add_argument("target", nargs="?", help="the route file (route) or route name (reproduce)")
 
     g = ap.add_argument_group("location")
     g.add_argument("--address", help="street address, intersection or place name in New York City")
@@ -68,28 +78,30 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--seed", type=int)
     g.add_argument("--objects", choices=["on", "off"], help="vehicles, pedestrians, trees and street furniture")
 
-    g = ap.add_argument_group("look and weather in the renderer")
-    g.add_argument("--look", choices=["standard", "enhanced"], default="standard",
-                   help="enhanced = sky light, rippled water, ground textures, wall and roof variation")
-    g.add_argument("--sim-weather", choices=["clear", "fog_light", "fog_heavy", "wet"], default="clear",
-                   help="weather drawn by the renderer itself")
+    g = ap.add_argument_group("look")
+    g.add_argument("--look", choices=["standard", "enhanced"],
+                   help="enhanced = sky light, rippled water, ground textures, wall and roof variation "
+                        "(default standard, or the route file's look)")
 
-    g = ap.add_argument_group("weather and realism from the video model")
-    g.add_argument("--weather", nargs="+", choices=["clear", "fog", "rain", "snow"], default=["clear"],
-                   help="one video per weather, made by the video model (needs --realism model)")
-    g.add_argument("--model-setting", help="named setting from configs/gen_prompts_windows.yaml "
-                                           "(default: the one configs/gen.yaml names for each weather)")
+    g = ap.add_argument_group("video model")
     g.add_argument("--realism", choices=["none", "model"], default="none",
                    help="model = restyle the render with the video model (needs an 80 GB GPU)")
+    g.add_argument("--weather", nargs="+", default=["clear"], help="clear (other weather is not available yet)")
+    g.add_argument("--start", type=int, default=0, help="first frame of the 93-frame window the model restyles")
+    g.add_argument("--method", choices=["window", "windows", "chain"], default="window",
+                   help="window: one 93-frame window from --start (default). Experimental: windows = the "
+                        "whole clip as overlapping windows joined on the CPU; chain = the whole clip in one "
+                        "model run, each 93-frame chunk continuing the last")
+    g.add_argument("--model-setting", help="named setting from configs/gen_prompts_windows.yaml (default: the clear one)")
+
+    g = ap.add_argument_group("route and reproduce")
+    g.add_argument("--poses-only", action="store_true",
+                   help="fetch the buildings and plan the flight, compare poses (reproduce) and stop: CPU only")
 
     g = ap.add_argument_group("run")
     g.add_argument("--out", help="output folder (default runs/<location>)")
     g.add_argument("--config", help="YAML file whose values replace the defaults")
     g.add_argument("--dry-run", action="store_true", help="print what would run and stop")
-    g.add_argument("--slurm", action="store_true", help="submit this command as a Slurm job")
-    g.add_argument("--slurm-account")
-    g.add_argument("--slurm-partition")
-    g.add_argument("--slurm-time", default="02:00:00")
     g.add_argument("--sim-python", default=os.environ.get("NYC_DRONE_SIM_PYTHON", str(REPO_ROOT / "env_sim/bin/python")),
                    help="Python of the environment that holds Isaac Sim")
     g.add_argument("--offline", action="store_true", help="use only cached city data")
@@ -115,27 +127,7 @@ def speed_for(cfg: dict, alt_ft: int) -> float:
     return min(max(v0 + (v1 - v0) * (alt_ft - a0) / (a1 - a0), min(v0, v1)), max(v0, v1))
 
 
-def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
-    """(config, location text, path variant) from the defaults, --config and the options."""
-    cfg = load_config()
-    if a.config:
-        cfg = merge(cfg, yaml.safe_load(Path(a.config).read_text()) or {})
-    cfg = copy.deepcopy(cfg)
-    if a.address and (a.lat is not None or a.lon is not None):
-        raise SystemExit("give --address or --lat and --lon, not both")
-    if a.address:
-        location = a.address
-    elif a.lat is not None and a.lon is not None:
-        location = f"{a.lat:.6f},{a.lon:.6f}"
-    else:
-        raise SystemExit("give --address, or --lat and --lon")
-
-    if a.radius_m:
-        cfg["scene_radius_m"] = float(a.radius_m)
-    if a.altitude_ft:
-        cfg["altitudes_ft"] = list(a.altitude_ft)
-    if a.seed is not None:
-        cfg["seed"] = a.seed
+def apply_camera(a, cfg: dict) -> None:
     cam = cfg["camera"]
     if a.pitch_deg is not None:
         cam["pitch_deg"] = a.pitch_deg
@@ -151,26 +143,79 @@ def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
         cam["vertical_aperture_mm"] = float(cam["horizontal_aperture_mm"]) * h / w
     if a.fps:
         cfg["clip"]["fps"] = a.fps
-    variant = "street" if a.path == "street" else None
-    section = cfg["street"] if variant else cfg["clip"]
-    if a.duration_s:
-        section["frames"] = int(round(a.duration_s * float(cfg["clip"]["fps"])))
-    cfg["speed_mps"] = {int(alt): float(a.speed_mps) if a.speed_mps else round(speed_for(cfg, int(alt)), 2)
-                        for alt in cfg["altitudes_ft"]}
     if a.objects:
         cfg["populate"]["enabled"] = a.objects == "on"
-    # recorded traffic and pedestrian motion must last as long as the clip
-    cfg["populate"]["frames"] = max(int(section["frames"]), 1)
+
+
+def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
+    """(config, location, path variant) from the defaults, --config, a route file and the options."""
+    if any(w != "clear" for w in a.weather):
+        raise SystemExit("weather is not available yet")
+    cfg = load_config()
+    if a.config:
+        cfg = merge(cfg, yaml.safe_load(Path(a.config).read_text()) or {})
+    cfg = copy.deepcopy(cfg)
+    has_location = a.address or a.lat is not None or a.lon is not None
+    if a.command in ("route", "reproduce") and not a.target:
+        raise SystemExit(f"{a.command} needs a route file or the name of one in configs/routes/")
+    if a.command == "run" and a.target:
+        raise SystemExit("run takes --address, or --lat and --lon; fly a route file with: nyc-drone route FILE")
+    if a.target and has_location:
+        raise SystemExit("give a route or a location, not both")
+    if a.command == "reproduce" and a.method != "window":
+        raise SystemExit("reproduce compares camera poses; --method is for generate and run")
+
+    if a.target:                                                   # a route file
+        fixed = [o for o in ("altitude_ft", "duration_s", "speed_mps", "radius_m", "seed") if getattr(a, o) not in (None, [])]
+        if fixed:
+            raise SystemExit("set " + ", ".join("--" + o.replace("_", "-") for o in fixed) + " in the route file instead")
+        path = routes_mod.route_path(a.target)
+        if not path.exists():
+            raise SystemExit(f"no route file {path}")
+        name, route, place = routes_mod.resolve_route(path, cfg, a.offline)
+        cfg.setdefault("places", {})[name] = place
+        cfg["altitudes_ft"] = [int(x) for x in route.get("altitudes_ft", cfg["altitudes_ft"])]
+        cfg["seed"] = int(route.get("seed", cfg["seed"]))
+        cfg["long"]["frames"] = int(route["frames"])
+        if a.command == "reproduce" and any(getattr(a, o) is not None for o in ("pitch_deg", "focal_mm", "fov_deg", "resolution", "fps")):
+            raise SystemExit("reproduce uses the camera the poses were saved with: leave the camera options out")
+        apply_camera(a, cfg)
+        location, variant, look, path_kind = name, "long", a.look or route.get("look", "standard"), "route"
+    else:
+        if a.address and (a.lat is not None or a.lon is not None):
+            raise SystemExit("give --address or --lat and --lon, not both")
+        if a.address:
+            location = a.address
+        elif a.lat is not None and a.lon is not None:
+            location = f"{a.lat:.6f},{a.lon:.6f}"
+        else:
+            raise SystemExit("give --address, or --lat and --lon, or a route file")
+        if a.radius_m:
+            cfg["scene_radius_m"] = float(a.radius_m)
+        if a.altitude_ft:
+            cfg["altitudes_ft"] = list(a.altitude_ft)
+        if a.seed is not None:
+            cfg["seed"] = a.seed
+        apply_camera(a, cfg)
+        variant = "street" if a.path == "street" else None
+        section = cfg["street"] if variant else cfg["clip"]
+        if a.duration_s:
+            section["frames"] = int(round(a.duration_s * float(cfg["clip"]["fps"])))
+        cfg["speed_mps"] = {int(alt): float(a.speed_mps) if a.speed_mps else round(speed_for(cfg, int(alt)), 2)
+                            for alt in cfg["altitudes_ft"]}
+        # recorded traffic and pedestrian motion must last as long as the clip
+        cfg["populate"]["frames"] = max(int(section["frames"]), 1)
+        look, path_kind = a.look or "standard", a.path
 
     out = Path(a.out) if a.out else REPO_ROOT / "runs" / slugify(location)
     out = out.resolve()
     cfg["output"] = {"scenes_dir": str(out / "work" / "scenes"), "runs_dir": str(out / "work")}
-    cfg["_run"] = {"out": str(out), "location": location, "path": a.path}
+    cfg["_run"] = {"out": str(out), "location": location, "path": path_kind, "look": look}
     return cfg, location, variant
 
 
 def frames_of(cfg: dict, variant: str | None) -> int:
-    return int((cfg["street"] if variant else cfg["clip"])["frames"])
+    return int((cfg[variant] if variant else cfg["clip"])["frames"])
 
 
 def geocode(cfg: dict, location: str, offline: bool) -> dict:
@@ -181,16 +226,24 @@ def geocode(cfg: dict, location: str, offline: bool) -> dict:
 
 def dry_run(a, cfg: dict, location: str, variant: str | None) -> None:
     frames, fps = frames_of(cfg, variant), float(cfg["clip"]["fps"])
-    try:
-        loc = geocode(cfg, location, a.offline)
-        where = f"{loc.get('label', location)}  lat {loc['lat']:.6f}, lon {loc['lon']:.6f}"
-    except Exception as e:                                   # no network on this node, or no match
-        where = f"{location}  (not resolved: {e})"
+    place = (cfg.get("places") or {}).get(location)
+    if place is not None:
+        where = f"route {location}  origin lat {place['origin'][0]:.6f}, lon {place['origin'][1]:.6f}"
+    else:
+        try:
+            loc = geocode(cfg, location, a.offline)
+            where = f"{loc.get('label', location)}  lat {loc['lat']:.6f}, lon {loc['lon']:.6f}"
+        except Exception as e:                               # no network, or no match
+            where = f"{location}  (not resolved: {e})"
     alts = cfg["altitudes_ft"]
     render_min = len(alts) * (RENDER_START_S + frames * RENDER_S_PER_FRAME) / 60
     print(f"location     {where}")
-    print(f"scene        circle of radius {cfg['scene_radius_m']:.0f} m, objects {'on' if cfg['populate']['enabled'] else 'off'}, seed {cfg['seed']}")
-    print(f"flight       {a.path} path, altitudes {alts} ft, speeds {[cfg['speed_mps'][int(x)] for x in alts]} m/s")
+    extent = (f"corridor of {place['buffer_m']} m around {len(place['route_m'])} waypoints" if place is not None
+              else f"circle of radius {cfg['scene_radius_m']:.0f} m")
+    print(f"scene        {extent}, objects {'on' if cfg['populate']['enabled'] else 'off'}, seed {cfg['seed']}, look {cfg['_run']['look']}")
+    speeds = ([place["speed_mps"]] * len(alts) if place is not None and place.get("sync_ground_track")
+              else [cfg["speed_mps"][int(x)] for x in alts])
+    print(f"flight       {cfg['_run']['path']} path, altitudes {alts} ft, speeds {speeds} m/s")
     print(f"clip         {frames} frames at {fps:g} fps = {frames / fps:.1f} s, "
           f"{cfg['camera']['resolution'][0]}x{cfg['camera']['resolution'][1]}, "
           f"pitch {cfg['camera']['pitch_deg']} deg, focal {cfg['camera']['focal_length_mm']:.1f} mm")
@@ -198,9 +251,11 @@ def dry_run(a, cfg: dict, location: str, variant: str | None) -> None:
     print("steps")
     print(f"  scene      CPU only           about {SCENE_BUILD_MIN[0]} to {SCENE_BUILD_MIN[1]} min")
     print(f"  render     RTX GPU (L40S)     about {render_min:.0f} min for {len(alts)} altitude(s)")
-    print("  check      CPU only           a few minutes")
     if a.realism == "model":
-        print(f"  generate   80 GB GPU          video model, one video per weather and altitude: {', '.join(a.weather)}")
+        what = (f"one 93-frame window from frame {a.start}" if a.method == "window"
+                else f"the whole clip, method {a.method} (experimental)")
+        print(f"  generate   80 GB GPU          video model, clear weather, {what}, per altitude")
+    print("  check      CPU only           a few minutes")
     print("nothing was run")
 
 
@@ -221,37 +276,102 @@ def module(py: str, name: str, cfg_path: Path, location: str, *extra: str) -> li
     return [py, "-m", f"nyc_drone_sim.{name}", "--config", str(cfg_path), "--location", location, *extra]
 
 
-def step_scene(a, cfg, location, variant, cfg_path: Path, out: Path, timings: dict) -> None:
+def step_scene(a, cfg, location, variant, cfg_path: Path, out: Path, timings: dict, poses_only: bool = False) -> None:
+    """Data, scene and flight paths. poses_only: the buildings and the flight paths, nothing else."""
     log = out / "work" / "scene.log"
     built = out / "work" / "scene_built.yaml"
     if built.exists() and built.read_text() == cfg_path.read_text() and (out / "scene.usd").exists() and (out / "flight.json").exists():
         print("scene: already built with these options, reused", flush=True)
         return
-    names = ["geo", "layers"] + (["populate"] if cfg["populate"]["enabled"] else []) + ["scene"]
+    names = ["geo"] if poses_only else ["geo", "layers"] + (["populate"] if cfg["populate"]["enabled"] else []) + ["scene"]
     for name in names:
         extra = ("--offline",) if a.offline and name in ("geo", "layers") else ()
         timings[name] = call(module(sys.executable, name, cfg_path, location, *extra), log)
     timings["paths"] = call(module(sys.executable, "paths", cfg_path, location, *(("--variant", variant) if variant else ())), log)
     sdir = Path(cfg["output"]["scenes_dir"]) / slugify(location)
-    shutil.copy(sdir / "scene.usdc", out / "scene.usd")
     suffix = f"_{variant}" if variant else ""
-    flight = {"location": location, "path": a.path,
+    flight = {"location": location, "path": cfg["_run"]["path"],
               "altitudes": {str(alt): json.loads((sdir / f"path_{int(alt)}{suffix}.json").read_text()) for alt in cfg["altitudes_ft"]}}
     (out / "flight.json").write_text(json.dumps(flight, indent=1) + "\n")
-    shutil.copy(cfg_path, built)
+    if not poses_only:
+        shutil.copy(sdir / "scene.usdc", out / "scene.usd")
+        shutil.copy(cfg_path, built)
+
+
+def compare_with_expected(location: str, out: Path) -> dict:
+    """reproduce: the planned camera poses against NAME.expected_poses.json."""
+    flight = json.loads((out / "flight.json").read_text())
+    res = routes_mod.compare_poses(routes_mod.poses_from_flight(flight), routes_mod.load_expected(location))
+    worst_m = max((v.get("max_position_m", float("inf")) for v in res.values()), default=float("inf"))
+    worst_deg = max((v.get("max_rotation_deg", float("inf")) for v in res.values()), default=float("inf"))
+    for alt, v in res.items():
+        if "error" in v:
+            print(f"poses {alt} ft: {v['error']}", flush=True)
+        else:
+            print(f"poses {alt} ft: {v['frames']} frames, largest difference {v['max_position_m']:.6f} m "
+                  f"(frame {v['frame_of_max_position']}) and {v['max_rotation_deg']:.6f} deg (frame {v['frame_of_max_rotation']})", flush=True)
+    passed = worst_m <= POSE_TOLERANCE[0] and worst_deg <= POSE_TOLERANCE[1]
+    print(f"largest difference over all frames: {worst_m:.6f} m, {worst_deg:.6f} deg -> "
+          f"{'matches' if passed else 'DOES NOT MATCH'} (limits {POSE_TOLERANCE[0]} m, {POSE_TOLERANCE[1]} deg)", flush=True)
+    return {"per_altitude": res, "largest_position_m": worst_m, "largest_rotation_deg": worst_deg,
+            "limits": {"position_m": POSE_TOLERANCE[0], "rotation_deg": POSE_TOLERANCE[1]}, "matches": passed}
+
+
+INSTALL = "see the Install section of README.md"
+
+
+def check_simulator(a) -> None:
+    """Stop at once, before any work, when the render step could not run here."""
+    if not shutil.which("nvidia-smi"):
+        raise SystemExit("the render step needs an NVIDIA RTX GPU and its driver, and this machine has none; " + INSTALL)
+    if not Path(a.sim_python).exists():
+        raise SystemExit(f"Isaac Sim 6.2 is not installed: no Python at {a.sim_python}. Install it with\n"
+                         "  uv venv env_sim --python 3.12\n"
+                         '  uv pip install --python env_sim/bin/python "isaacsim[all,extscache]==6.2.0" --extra-index-url https://pypi.nvidia.com\n'
+                         "or point --sim-python / NYC_DRONE_SIM_PYTHON at an existing one; " + INSTALL)
+    probe = subprocess.run([a.sim_python, "-c", "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('isaacsim') else 1)"])
+    if probe.returncode != 0:
+        raise SystemExit(f"{a.sim_python} has no isaacsim package: install Isaac Sim 6.2 into it; " + INSTALL)
+    if os.environ.get("OMNI_KIT_ACCEPT_EULA", "").upper() not in ("YES", "Y", "1", "TRUE"):
+        raise SystemExit("Isaac Sim needs its licence accepted: read it, then set OMNI_KIT_ACCEPT_EULA=YES")
+
+
+def check_model() -> None:
+    """Stop at once when the video model's checkout or environment is missing."""
+    from .gen.common import load_gen_config
+    from .gen.model import model_python, model_repo
+    gcfg = load_gen_config()
+    try:
+        repo = model_repo(gcfg)
+    except RuntimeError as e:
+        raise SystemExit(f"{e}. Clone Cosmos-Transfer2.5 at commit {gcfg['model']['commit'][:12]} and create its "
+                         "environment; " + INSTALL)
+    py = model_python(gcfg)
+    probe = subprocess.run([py, "-c", "import importlib.util, sys; sys.exit(0 if importlib.util.find_spec('cosmos_transfer2') "
+                                      "and importlib.util.find_spec('cv2') else 1)"], cwd=repo)
+    if probe.returncode != 0:
+        raise SystemExit(f"the video model's environment is missing or incomplete ({py} cannot import cosmos_transfer2 "
+                         "and cv2): create it with uv sync in the model checkout, then set MODEL_PYTHON; " + INSTALL)
+
+
+def fetch_models_if_missing(cfg: dict) -> None:
+    """Vehicle, tree and pedestrian models: downloaded and converted once, the first time a scene needs them."""
+    if not cfg["populate"]["enabled"] or (REPO_ROOT / cfg["assets"]["library_dir"] / "manifest.json").exists():
+        return
+    print("models: vehicle, tree and pedestrian models are missing; downloading them (about 0.6 GB, once)", flush=True)
+    env = {**os.environ, "SKIP_CONVERT": "1"}
+    if subprocess.run(["bash", str(REPO_ROOT / "scripts" / "fetch_assets.sh")], cwd=REPO_ROOT, env=env).returncode != 0:
+        raise SystemExit("downloading the models failed; run scripts/fetch_assets.sh by hand to see why")
+    if subprocess.run([sys.executable, "-m", "nyc_drone_sim.assets"], cwd=REPO_ROOT).returncode != 0:
+        raise SystemExit("converting the models to USD failed; run python -m nyc_drone_sim.assets to see why")
 
 
 def step_render(a, cfg, location, variant, cfg_path: Path, out: Path, timings: dict) -> None:
-    if not Path(a.sim_python).exists():
-        raise SystemExit(f"no Isaac Sim Python at {a.sim_python}; set --sim-python or NYC_DRONE_SIM_PYTHON")
-    if not shutil.which("nvidia-smi"):
-        raise SystemExit("the render step needs an RTX GPU and this machine has none; add --slurm to submit it as a job")
-    if os.environ.get("OMNI_KIT_ACCEPT_EULA", "").upper() not in ("YES", "Y", "1", "TRUE"):
-        raise SystemExit("Isaac Sim needs its licence accepted: read it, then set OMNI_KIT_ACCEPT_EULA=YES")
+    check_simulator(a)
     log = out / "work" / "render.log"
     v = ("--variant", variant) if variant else ()
     slug = slugify(location)
-    look = ("--look", a.look, "--sim-weather", a.sim_weather)
+    look = ("--look", cfg["_run"]["look"])
     for alt in cfg["altitudes_ft"]:
         timings[f"render_{alt}"] = call(module(a.sim_python, "sim.render", cfg_path, location,
                                                "--altitude", str(alt), "--run", "render", *v, *look), log)
@@ -283,15 +403,16 @@ def side_by_side(out: Path, alts: list) -> None:
 
 
 def step_generate(a, cfg, location, out: Path, timings: dict) -> None:
-    """The video model on the rendered clips: control videos, then one clip per weather, made from
-    overlapping 93-frame windows (nyc_drone_sim.gen.makeclip). Runs in the model's Python."""
+    """The video model on the rendered clips, in clear weather. By default one 93-frame window from
+    --start; --method windows or chain (experimental) restyle the whole clip. Runs in the model's Python."""
     from .gen.common import load_gen_config, model_dir
-    from .gen.model import model_python, model_repo
+    from .gen.model import model_python
+    check_model()
     gcfg = load_gen_config()
-    model_repo(gcfg)                                   # fails early, with a clear message, if missing
     py, log = model_python(gcfg), out / "work" / "generate.log"
     run_folder = out / "work" / "render" / slugify(location)
-    method = gcfg["generate"]["method"]
+    weather = "clear"
+    setting = a.model_setting or gcfg["generate"]["default_setting"][weather]
     for alt in cfg["altitudes_ft"]:
         bdir = run_folder / str(alt)
         if not (bdir / "bundle.json").exists():
@@ -299,17 +420,19 @@ def step_generate(a, cfg, location, out: Path, timings: dict) -> None:
         if not (bdir / "gen" / "inputs" / "inputs.json").exists():
             timings[f"controls_{alt}"] = call([py, "-m", "nyc_drone_sim.gen.controls", "--run-folder", str(run_folder),
                                                "--altitude", str(alt)], log)
-        for w in a.weather:
-            setting = a.model_setting or gcfg["generate"]["default_setting"][w]
-            timings[f"generate_{alt}_{w}"] = call([py, "-m", "nyc_drone_sim.gen.makeclip", "--run-folder", str(run_folder),
-                                                   "--altitude", str(alt), "--weather", w, "--setting", setting,
-                                                   "--method", method], log)
-            made = sorted((d for d in model_dir(bdir, gcfg).glob(f"{w}_{setting}_{method}*") if ".tmp_" not in d.name),
-                          key=lambda d: d.stat().st_mtime)
-            if not made or not (made[-1] / "out.mp4").exists():
-                raise SystemExit(f"the video model left no out.mp4 for {w} at {alt} ft; see {log}")
-            (out / str(alt) / "weather").mkdir(parents=True, exist_ok=True)
-            shutil.copy(made[-1] / "out.mp4", out / str(alt) / "weather" / f"{w}.mp4")
+        cmd = [py, "-m", "nyc_drone_sim.gen.makeclip", "--run-folder", str(run_folder), "--altitude", str(alt),
+               "--weather", weather, "--setting", setting, "--method", a.method]
+        if a.method == "window":
+            cmd += ["--start", str(a.start)]
+        timings[f"generate_{alt}"] = call(cmd, log)
+        tag = f"window_{a.start:04d}" if a.method == "window" else a.method
+        made = sorted((d for d in model_dir(bdir, gcfg).glob(f"{weather}_{setting}_{tag}*") if ".tmp_" not in d.name),
+                      key=lambda d: d.stat().st_mtime)
+        if not made or not (made[-1] / "out.mp4").exists():
+            raise SystemExit(f"the video model left no out.mp4 at {alt} ft; see {log}")
+        (out / str(alt) / "weather").mkdir(parents=True, exist_ok=True)
+        name = f"{weather}_{tag}.mp4" if a.method == "window" else f"{weather}_{a.method}.mp4"
+        shutil.copy(made[-1] / "out.mp4", out / str(alt) / "weather" / name)
 
 
 def step_check(a, cfg, location, variant, cfg_path: Path, out: Path, timings: dict) -> dict:
@@ -334,7 +457,7 @@ def step_check(a, cfg, location, variant, cfg_path: Path, out: Path, timings: di
     return results
 
 
-def write_report(cfg, location, out: Path, timings: dict, checks: dict | None) -> None:
+def write_report(cfg, location, out: Path, timings: dict, checks: dict | None, poses: dict | None = None) -> None:
     sdir = Path(cfg["output"]["scenes_dir"]) / slugify(location)
 
     def read(name):
@@ -354,27 +477,10 @@ def write_report(cfg, location, out: Path, timings: dict, checks: dict | None) -
         "scene": {k: meta.get(k) for k in meta if k != "origin"},
         "objects": counts,
         "checks": checks if checks is not None else prev.get("checks"),
+        "reproduced_poses": poses if poses is not None else prev.get("reproduced_poses"),
         "timings_s": {**prev.get("timings_s", {}), **{k: round(v, 1) for k, v in timings.items()}},
     }
     (out / "report.json").write_text(json.dumps(report, indent=1) + "\n")
-
-
-def submit(a, out: Path) -> None:
-    args = [x for x in sys.argv[1:] if x != "--slurm"]
-    script = out / "job.sbatch"
-    script.write_text("\n".join([
-        "#!/bin/bash",
-        "#SBATCH --job-name=nyc-drone",
-        *([f"#SBATCH --partition={a.slurm_partition}"] if a.slurm_partition else []),
-        "#SBATCH --gres=gpu:1", "#SBATCH --cpus-per-task=8", "#SBATCH --mem=48G",
-        f"#SBATCH --time={a.slurm_time}",
-        f"#SBATCH --output={out}/slurm-%j.out",
-        *([f"#SBATCH --account={a.slurm_account}"] if a.slurm_account else []),
-        "set -euo pipefail",
-        f"cd {shlex.quote(str(REPO_ROOT))}",
-        f"{shlex.quote(sys.executable)} -m nyc_drone_sim.cli " + " ".join(shlex.quote(x) for x in args), ""]))
-    print(subprocess.run(["sbatch", str(script)], capture_output=True, text=True, check=True).stdout.strip())
-    print(f"job script: {script}")
 
 
 def main(argv=None) -> None:
@@ -383,31 +489,38 @@ def main(argv=None) -> None:
     if a.dry_run:
         dry_run(a, cfg, location, variant)
         return
-    if a.weather != ["clear"] and a.realism != "model":
-        raise SystemExit("--weather other than clear is made by the video model: add --realism model "
-                         "(or use --sim-weather for the renderer's own fog and wet look)")
+    cmd = a.command
+    full = cmd in ("run", "route", "reproduce") and not a.poses_only
+    # stop at once, before any work, when a later step could not run on this machine
+    if full or cmd == "render":
+        check_simulator(a)
+    if (full and a.realism == "model") or cmd == "generate":
+        check_model()
+    if full or cmd == "scene":
+        fetch_models_if_missing(cfg)
     out = Path(cfg["_run"]["out"])
     (out / "work").mkdir(parents=True, exist_ok=True)
-    if a.slurm:
-        submit(a, out)
-        return
     cfg_path = out / "config.yaml"
     cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False))
     os.environ["NYC_DRONE_VALIDATION_DIR"] = str(out / "validation")     # check reports and pictures of this run
     timings: dict = {}
-    checks = None
+    checks, poses = None, None
     try:
-        if a.step in ("run", "scene"):
-            step_scene(a, cfg, location, variant, cfg_path, out, timings)
-        if a.step in ("run", "render"):
+        if full or cmd == "scene" or (a.poses_only and cmd in ("route", "reproduce")):
+            step_scene(a, cfg, location, variant, cfg_path, out, timings, poses_only=a.poses_only)
+        if cmd == "reproduce":
+            poses = compare_with_expected(location, out)
+        if full or cmd == "render":
             step_render(a, cfg, location, variant, cfg_path, out, timings)
-        if a.step == "generate" or (a.step == "run" and a.realism == "model"):
+        if (full and a.realism == "model") or cmd == "generate":
             step_generate(a, cfg, location, out, timings)
-        if a.step in ("run", "check"):
+        if full or cmd == "check":
             checks = step_check(a, cfg, location, variant, cfg_path, out, timings)
     finally:
-        write_report(cfg, location, out, timings, checks)
+        write_report(cfg, location, out, timings, checks, poses)
     print(f"done: {out}")
+    if poses is not None and not poses["matches"]:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
