@@ -1,0 +1,586 @@
+{
+ "snow_grid": {
+  "t1_long_prompt": {
+   "frames": 93,
+   "structure": 2.7324142132127847,
+   "structure_min": 2.574692856250584,
+   "white_ground": 0.1420201199483814,
+   "ripple": 0.9611458877722422,
+   "brightness": 100.23345570505403,
+   "contrast": 54.33960041300858
+  },
+  "t2_long_prompt_guidance7": {
+   "frames": 93,
+   "structure": 2.6142380997515153,
+   "structure_min": 2.4639762281988244,
+   "white_ground": 0.14955057572963712,
+   "ripple": 1.081292947133382,
+   "brightness": 93.01367681809414,
+   "contrast": 50.200163432468514
+  },
+  "t3_long_prompt_weights_half": {
+   "frames": 93,
+   "structure": 2.6852243049385156,
+   "structure_min": 2.4644866224073065,
+   "white_ground": 0.30735180677566915,
+   "ripple": 1.4652466177940369,
+   "brightness": 120.79414128809799,
+   "contrast": 71.40022771660401
+  },
+  "t4_long_prompt_depth_edge": {
+   "frames": 93,
+   "structure": 2.935110957732793,
+   "structure_min": 2.767507022136405,
+   "white_ground": 0.5278027640800271,
+   "ripple": 1.0100922485192616,
+   "brightness": 112.46205825617284,
+   "contrast": 58.576961510256524
+  },
+  "t5_long_prompt_edge_only": {
+   "frames": 93,
+   "structure": 3.0372109475715363,
+   "structure_min": 2.7511854224377483,
+   "white_ground": 0.4714107071178819,
+   "ripple": 1.1712993780771892,
+   "brightness": 136.30027639130014,
+   "contrast": 65.39220082065441
+  },
+  "t6_long_prompt_guidance7_depth_edge_half": {
+   "frames": 93,
+   "structure": 2.200987937080509,
+   "structure_min": 2.069428605753899,
+   "white_ground": 0.24552855596662745,
+   "ripple": 2.1686119635899863,
+   "brightness": 120.42023389274691,
+   "contrast": 61.05398903722901
+  },
+  "t7_short_prompt_guidance7": {
+   "frames": 93,
+   "structure": 2.534782622716609,
+   "structure_min": 2.457670899589151,
+   "white_ground": 0.08020032955758452,
+   "ripple": 1.6446972688039143,
+   "brightness": 86.84308768566746,
+   "contrast": 61.58341433137375
+  },
+  "_pairwise_difference": {
+   "t1_long_prompt vs t2_long_prompt_guidance7": 20.137166280864196,
+   "t1_long_prompt vs t3_long_prompt_weights_half": 44.63445933400849,
+   "t1_long_prompt vs t4_long_prompt_depth_edge": 35.06582597897377,
+   "t1_long_prompt vs t5_long_prompt_edge_only": 53.710787459008486,
+   "t1_long_prompt vs t6_long_prompt_guidance7_depth_edge_half": 40.445720365547835,
+   "t1_long_prompt vs t7_short_prompt_guidance7": 35.29340452594522,
+   "t2_long_prompt_guidance7 vs t3_long_prompt_weights_half": 52.14094841097608,
+   "t2_long_prompt_guidance7 vs t4_long_prompt_depth_edge": 41.04249421296296,
+   "t2_long_prompt_guidance7 vs t5_long_prompt_edge_only": 57.18316749855324,
+   "t2_long_prompt_guidance7 vs t6_long_prompt_guidance7_depth_edge_half": 45.17717411747685,
+   "t2_long_prompt_guidance7 vs t7_short_prompt_guidance7": 42.69171893084491,
+   "t3_long_prompt_weights_half vs t4_long_prompt_depth_edge": 18.81989070939429,
+   "t3_long_prompt_weights_half vs t5_long_prompt_edge_only": 33.60325086805556,
+   "t3_long_prompt_weights_half vs t6_long_prompt_guidance7_depth_edge_half": 39.416026053722995,
+   "t3_long_prompt_weights_half vs t7_short_prompt_guidance7": 62.979896195023144,
+   "t4_long_prompt_depth_edge vs t5_long_prompt_edge_only": 33.84215910734954,
+   "t4_long_prompt_depth_edge vs t6_long_prompt_guidance7_depth_edge_half": 36.94054374035494,
+   "t4_long_prompt_depth_edge vs t7_short_prompt_guidance7": 52.46451057339892,
+   "t5_long_prompt_edge_only vs t6_long_prompt_guidance7_depth_edge_half": 32.99754093123071,
+   "t5_long_prompt_edge_only vs t7_short_prompt_guidance7": 65.50370273919754,
+   "t6_long_prompt_guidance7_depth_edge_half vs t7_short_prompt_guidance7": 55.76686867042824
+  }
+ },
+ "first_four": {
+  "clear_rendered": {
+   "frames": 93,
+   "structure": 2.0392193470032534,
+   "structure_min": 1.9453327522068038,
+   "white_ground": 0.020776150539372953,
+   "ripple": 1.4811629851659138,
+   "brightness": 111.20434582368829,
+   "contrast": 45.80733410123784
+  },
+  "fog_geometry": {
+   "frames": 93,
+   "structure": 2.7356225778181322,
+   "structure_min": 2.5703031694025373,
+   "white_ground": 0.30713778797006747,
+   "ripple": 1.237022042274475,
+   "brightness": 126.40548195167825,
+   "contrast": 46.19194692369799
+  },
+  "rain_geometry": {
+   "frames": 93,
+   "structure": 2.8369255164281673,
+   "structure_min": 2.6365802533069855,
+   "white_ground": 0.09978628279110346,
+   "ripple": 1.0951344966888428,
+   "brightness": 98.20806887779707,
+   "contrast": 42.78233619289901
+  },
+  "snow_geometry": {
+   "frames": 93,
+   "structure": 2.819717834732478,
+   "structure_min": 2.6809517917966046,
+   "white_ground": 0.23186299805978508,
+   "ripple": 1.2881254156430562,
+   "brightness": 109.26694812162422,
+   "contrast": 46.38543871179163
+  },
+  "_pairwise_difference": {
+   "clear_rendered vs fog_geometry": 26.712374071662808,
+   "clear_rendered vs rain_geometry": 26.391602225597996,
+   "clear_rendered vs snow_geometry": 21.836093810281636,
+   "fog_geometry vs rain_geometry": 29.905705054012344,
+   "fog_geometry vs snow_geometry": 22.784738498263888,
+   "rain_geometry vs snow_geometry": 14.193426046489199
+  }
+ },
+ "weather_shoreline": {
+  "shoreline_fog_w53": {
+   "frames": 93,
+   "structure": 2.224480391579792,
+   "structure_min": 2.021637997444042,
+   "white_ground": 0.4016603150317745,
+   "ripple": 1.2323700785636902,
+   "brightness": 138.41816032503857,
+   "contrast": 44.88536741889788
+  },
+  "shoreline_rain_w53": {
+   "frames": 93,
+   "structure": 2.0030726458304886,
+   "structure_min": 1.8959491765585434,
+   "white_ground": 0.32770211554629963,
+   "ripple": 1.7834823528925579,
+   "brightness": 114.64129985291281,
+   "contrast": 53.967347567856415
+  },
+  "shoreline_snow_t4": {
+   "frames": 93,
+   "structure": 2.7612437784304564,
+   "structure_min": 2.586103702995687,
+   "white_ground": 0.028107603663043962,
+   "ripple": 0.7125320931275686,
+   "brightness": 104.73888286072531,
+   "contrast": 33.74386476526919
+  },
+  "F01_shore_snow": {
+   "frames": 93,
+   "structure": 2.7737890654061643,
+   "structure_min": 2.581997238043798,
+   "white_ground": 0.028658251969591226,
+   "ripple": 0.7171427806218466,
+   "brightness": 104.58992332175926,
+   "contrast": 33.632052075086065
+  },
+  "F02_shore_fog": {
+   "frames": 93,
+   "structure": 3.0014536617869307,
+   "structure_min": 2.5553151925982673,
+   "white_ground": 0.12781812087488478,
+   "ripple": 0.864553968111674,
+   "brightness": 111.71542118778935,
+   "contrast": 34.87921395293046
+  },
+  "F03_shore_rain": {
+   "frames": 93,
+   "structure": 2.791887047819007,
+   "structure_min": 2.6681465910213547,
+   "white_ground": 0.07620052672854555,
+   "ripple": 1.0178353091080983,
+   "brightness": 97.87975489486882,
+   "contrast": 37.71677807951621
+  },
+  "K2_clear": {
+   "frames": 93,
+   "structure": 2.2087993498466645,
+   "structure_min": 2.1279403961748997,
+   "white_ground": 0.34859065208654005,
+   "ripple": 1.5057392517725627,
+   "brightness": 109.16411868248457,
+   "contrast": 64.1582574072194
+  },
+  "_pairwise_difference": {
+   "shoreline_fog_w53 vs shoreline_rain_w53": 28.10810492621528,
+   "shoreline_fog_w53 vs shoreline_snow_t4": 45.089720172646615,
+   "shoreline_fog_w53 vs F01_shore_snow": 45.32024606963734,
+   "shoreline_fog_w53 vs F02_shore_fog": 33.90162923177083,
+   "shoreline_fog_w53 vs F03_shore_rain": 46.99310016396604,
+   "shoreline_fog_w53 vs K2_clear": 47.00450798128858,
+   "shoreline_rain_w53 vs shoreline_snow_t4": 42.58383843315972,
+   "shoreline_rain_w53 vs F01_shore_snow": 42.58531846788194,
+   "shoreline_rain_w53 vs F02_shore_fog": 33.51022436824845,
+   "shoreline_rain_w53 vs F03_shore_rain": 39.59119423948689,
+   "shoreline_rain_w53 vs K2_clear": 47.93503405912423,
+   "shoreline_snow_t4 vs F01_shore_snow": 1.8153509596836421,
+   "shoreline_snow_t4 vs F02_shore_fog": 22.758466133777006,
+   "shoreline_snow_t4 vs F03_shore_rain": 15.394868947723765,
+   "shoreline_snow_t4 vs K2_clear": 38.59580439814815,
+   "F01_shore_snow vs F02_shore_fog": 22.119155514564042,
+   "F01_shore_snow vs F03_shore_rain": 14.737977671682097,
+   "F01_shore_snow vs K2_clear": 39.02574508101852,
+   "F02_shore_fog vs F03_shore_rain": 17.293843496817132,
+   "F02_shore_fog vs K2_clear": 40.08393138744213,
+   "F03_shore_rain vs K2_clear": 35.95058641975309
+  }
+ },
+ "weather_street": {
+  "street_fog_w53": {
+   "frames": 93,
+   "structure": 2.1028060880696766,
+   "structure_min": 1.8455696048647432,
+   "white_ground": 0.2840672832614665,
+   "ripple": 2.664678772290548,
+   "brightness": 111.74669228636186,
+   "contrast": 51.76740756616989
+  },
+  "street_rain_w53": {
+   "frames": 93,
+   "structure": 1.8843390961595328,
+   "structure_min": 1.7922143420226642,
+   "white_ground": 0.14280902337467907,
+   "ripple": 3.2298171122868857,
+   "brightness": 92.76222620081019,
+   "contrast": 50.16502597969341
+  },
+  "street_snow_t4": {
+   "frames": 93,
+   "structure": 5.02462617510626,
+   "structure_min": 4.291121815668718,
+   "white_ground": 0.2839180842121117,
+   "ripple": 1.1693849364916484,
+   "brightness": 93.59479956356097,
+   "contrast": 52.736468867781845
+  },
+  "F04_street_snow": {
+   "frames": 93,
+   "structure": 5.04151028740708,
+   "structure_min": 4.443651665911834,
+   "white_ground": 0.2760587687424387,
+   "ripple": 1.1456674933433533,
+   "brightness": 93.10213686342593,
+   "contrast": 52.33725716889983
+  },
+  "F05_street_fog": {
+   "frames": 93,
+   "structure": 6.881947145985375,
+   "structure_min": 5.1225559335159065,
+   "white_ground": 0.2978935325033155,
+   "ripple": 1.0625023643175762,
+   "brightness": 112.6448391685957,
+   "contrast": 47.98546795662819
+  },
+  "F06_street_rain": {
+   "frames": 93,
+   "structure": 4.925838556733953,
+   "structure_min": 4.1050938853822405,
+   "white_ground": 0.26031841334439165,
+   "ripple": 1.3550675908724468,
+   "brightness": 93.57046832802855,
+   "contrast": 53.126233575823655
+  },
+  "K10_clear": {
+   "frames": 93,
+   "structure": 2.4584805465828357,
+   "structure_min": 2.2646340694836464,
+   "white_ground": 0.06151107235214955,
+   "ripple": 2.4732436339060464,
+   "brightness": 89.47985363618828,
+   "contrast": 51.96266923409889
+  },
+  "_pairwise_difference": {
+   "street_fog_w53 vs street_rain_w53": 25.160474717881943,
+   "street_fog_w53 vs street_snow_t4": 39.88534107349537,
+   "street_fog_w53 vs F04_street_snow": 39.59679416232638,
+   "street_fog_w53 vs F05_street_fog": 29.65112407166281,
+   "street_fog_w53 vs F06_street_rain": 38.56297718942901,
+   "street_fog_w53 vs K10_clear": 38.80810673466436,
+   "street_rain_w53 vs street_snow_t4": 38.02719141830633,
+   "street_rain_w53 vs F04_street_snow": 37.803481746720685,
+   "street_rain_w53 vs F05_street_fog": 35.92137466242284,
+   "street_rain_w53 vs F06_street_rain": 35.442078812210646,
+   "street_rain_w53 vs K10_clear": 29.620982831790126,
+   "street_snow_t4 vs F04_street_snow": 2.903313500675154,
+   "street_snow_t4 vs F05_street_fog": 30.083486388406637,
+   "street_snow_t4 vs F06_street_rain": 18.700654899691358,
+   "street_snow_t4 vs K10_clear": 38.236971993152004,
+   "F04_street_snow vs F05_street_fog": 30.0558186246142,
+   "F04_street_snow vs F06_street_rain": 18.481160120081018,
+   "F04_street_snow vs K10_clear": 38.1191244695216,
+   "F05_street_fog vs F06_street_rain": 20.98237262490355,
+   "F05_street_fog vs K10_clear": 35.77560534818673,
+   "F06_street_rain vs K10_clear": 32.61937554253472
+  }
+ },
+ "seeds": {
+  "K2_seed2026": {
+   "frames": 93,
+   "structure": 2.2087993498466645,
+   "structure_min": 2.1279403961748997,
+   "white_ground": 0.34859065208654005,
+   "ripple": 1.5057392517725627,
+   "brightness": 109.16411868248457,
+   "contrast": 64.1582574072194
+  },
+  "K2_seed2027": {
+   "frames": 93,
+   "structure": 2.4781666198323333,
+   "structure_min": 2.226628282562098,
+   "white_ground": 0.39603979672953366,
+   "ripple": 1.4686667521794636,
+   "brightness": 103.31325297791282,
+   "contrast": 64.22554790761346
+  },
+  "K2_seed2028": {
+   "frames": 93,
+   "structure": 2.570442467784941,
+   "structure_min": 2.37983110849286,
+   "white_ground": 0.16383058832470798,
+   "ripple": 1.598034143447876,
+   "brightness": 102.28919108072917,
+   "contrast": 58.59899230955012
+  },
+  "_pairwise_difference": {
+   "K2_seed2026 vs K2_seed2027": 27.536207742573307,
+   "K2_seed2026 vs K2_seed2028": 28.947679217303243,
+   "K2_seed2027 vs K2_seed2028": 29.00474537037037
+  }
+ },
+ "full_clips": {
+  "canal-shore-street/150/clear_K1_full": {
+   "frames": 768,
+   "structure": 5.028171641688539,
+   "structure_min": 2.660620253268252,
+   "brightness_per_93": [
+    82,
+    89,
+    102,
+    108,
+    144,
+    144,
+    142,
+    137,
+    138
+   ]
+  },
+  "canal-shore-street/150/clear_K2_chain_cond2": {
+   "frames": 768,
+   "structure": Infinity,
+   "structure_min": 3.33063957717911,
+   "brightness_per_93": [
+    140,
+    140,
+    138,
+    134,
+    128,
+    127,
+    131,
+    132,
+    132
+   ]
+  },
+  "canal-shore-street/150/clear_K2_full": {
+   "frames": 768,
+   "structure": 2.6338782371944403,
+   "structure_min": 2.1696108899182027,
+   "brightness_per_93": [
+    91,
+    86,
+    87,
+    92,
+    117,
+    98,
+    91,
+    84,
+    84
+   ]
+  },
+  "canal-shore-street/150/clear_K2_pieces185": {
+   "frames": 768,
+   "structure": 2.830883235195307,
+   "structure_min": 2.276038752707611,
+   "brightness_per_93": [
+    106,
+    101,
+    106,
+    102,
+    93,
+    93,
+    84,
+    91,
+    99
+   ]
+  },
+  "canal-shore-street/150/clear_K2_windows": {
+   "frames": 768,
+   "structure": 2.873676434079141,
+   "structure_min": 1.8928768789068202,
+   "brightness_per_93": [
+    106,
+    106,
+    108,
+    97,
+    104,
+    95,
+    91,
+    89,
+    80
+   ]
+  },
+  "canal-shore-street/150/snow_t4_windows": {
+   "frames": 768,
+   "structure": 4.357102145913402,
+   "structure_min": 2.8019344280542735,
+   "brightness_per_93": [
+    106,
+    104,
+    106,
+    107,
+    106,
+    100,
+    92,
+    90,
+    93
+   ]
+  },
+  "hudson-park-run/150/clear_K2_windows": {
+   "frames": 480,
+   "structure": 2.533285728713808,
+   "structure_min": 2.273087501320889,
+   "brightness_per_93": [
+    108,
+    111,
+    109,
+    109,
+    108,
+    105
+   ]
+  },
+  "hudson-park-run/150/clear_rendered.tmp_23287808": {
+   "frames": 480,
+   "structure": 2.645038460968095,
+   "structure_min": 1.9959928924225034,
+   "brightness_per_93": [
+    111,
+    113,
+    116,
+    116,
+    123,
+    122
+   ]
+  },
+  "hudson-park-run/150/snow_t4_windows": {
+   "frames": 480,
+   "structure": 2.719634327277475,
+   "structure_min": 2.518082617971882,
+   "brightness_per_93": [
+    109,
+    117,
+    113,
+    109,
+    115,
+    110
+   ]
+  },
+  "120-broadway/150/clear_K2_windows": {
+   "frames": 640,
+   "structure": 2.5680514619717467,
+   "structure_min": 1.796137279540229,
+   "brightness_per_93": [
+    95,
+    92,
+    97,
+    87,
+    87,
+    103,
+    88
+   ]
+  },
+  "canal-shore-street/500/clear_K1_full": {
+   "frames": 768,
+   "structure": 4.685746362564897,
+   "structure_min": 3.43692732300661,
+   "brightness_per_93": [
+    66,
+    70,
+    77,
+    87,
+    112,
+    120,
+    125,
+    121,
+    120
+   ]
+  },
+  "canal-shore-street/500/clear_K2_windows": {
+   "frames": 768,
+   "structure": 3.0187706761871924,
+   "structure_min": 2.588011104458431,
+   "brightness_per_93": [
+    94,
+    96,
+    96,
+    99,
+    97,
+    98,
+    90,
+    86,
+    84
+   ]
+  },
+  "hudson-park-run/500/clear_K2_windows": {
+   "frames": 480,
+   "structure": 2.564536450210914,
+   "structure_min": 2.0702815174517393,
+   "brightness_per_93": [
+    108,
+    109,
+    103,
+    102,
+    105,
+    105
+   ]
+  },
+  "120-broadway/500/clear_K2_windows": {
+   "frames": 640,
+   "structure": 2.573107347556739,
+   "structure_min": 1.9202066187525726,
+   "brightness_per_93": [
+    94,
+    97,
+    93,
+    103,
+    110,
+    101,
+    92
+   ]
+  }
+ },
+ "simulator_brightness_per_93": {
+  "canal-shore-street/150": [
+   176,
+   174,
+   177,
+   180,
+   163,
+   116,
+   103,
+   103,
+   112
+  ],
+  "hudson-park-run/150": [
+   127,
+   150,
+   177,
+   182,
+   185,
+   181
+  ],
+  "120-broadway/150": [
+   68,
+   58,
+   57,
+   44,
+   50,
+   65,
+   74
+  ]
+ }
+}
