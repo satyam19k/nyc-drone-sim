@@ -23,6 +23,12 @@ ap.add_argument("--run", required=True)
 ap.add_argument("--config", default=None)
 ap.add_argument("--variant", default=None, choices=["street", "long"])
 ap.add_argument("--view", default=None, help="one of the place's extra camera views; use its own --run")
+ap.add_argument("--sim-weather", dest="weather", default="clear", choices=["clear", "fog_light", "fog_heavy", "wet"],
+                help="renderer weather; clear leaves the render unchanged")
+ap.add_argument("--look", default="standard", choices=["standard", "enhanced"],
+                help="enhanced = sky light, rippled water, ground textures, wall and roof variation")
+ap.add_argument("--frames", default=None, help="START:COUNT, render only this window of the path")
+ap.add_argument("--appearance", default=None, help="JSON merged over the config's appearance block")
 args, _ = ap.parse_known_args()
 
 # SimulationApp must exist before any other Omniverse import.
@@ -86,6 +92,11 @@ def main():
     path_src = sdir / f"path_{args.altitude}{variant_suffix(args.variant, args.view)}.json"
     path = json.loads(path_src.read_text())
     frames = path["frames"]
+    if args.frames:
+        first, count = (int(v) for v in args.frames.split(":"))
+        frames = frames[first:first + count]
+        if len(frames) != count:
+            raise RuntimeError(f"--frames {args.frames} is outside the path's {len(path['frames'])} frames")
     fps = float(cfg["clip"]["fps"])
 
     out = REPO_ROOT / cfg["output"]["runs_dir"] / args.run / slug / str(args.altitude)
@@ -109,6 +120,21 @@ def main():
     stage.SetEndTimeCode(len(frames) - 1)
     timeline = omni.timeline.get_timeline_interface()
     timeline.set_time_codes_per_second(fps)
+
+    appearance = {"weather": "clear", "look": "standard"}
+    if args.weather != "clear" or args.look != "standard":
+        import carb.settings
+        from nyc_drone_sim.sim import appearance as app_mod
+        if args.appearance:
+            def merge(a, b):
+                return {**a, **{k: merge(a[k], v) if isinstance(v, dict) and isinstance(a.get(k), dict) else v for k, v in b.items()}}
+            cfg["appearance"] = merge(cfg["appearance"], json.loads(args.appearance))
+        st = carb.settings.get_settings()
+        appearance = {**app_mod.apply_look(stage, st, cfg, args.look, out / "textures"),
+                      **app_mod.apply_weather(stage, st, cfg, args.weather)}
+        for _ in range(10):
+            simulation_app.update()
+        print(f"appearance: {json.dumps(appearance, default=str)}", flush=True)
 
     cam = UsdGeom.Camera.Define(stage, "/World/DroneCamera")
     cam.CreateFocalLengthAttr(float(cc["focal_length_mm"]))
@@ -234,6 +260,8 @@ def main():
                    **({"placements.json": sha256(sdir / "placements.json"), "motion.npz": sha256(motion_src),
                        "asset_manifest.json": sha256(REPO_ROOT / cfg["assets"]["library_dir"] / "manifest.json")}
                       if movers is not None else {})},
+        "appearance": appearance,
+        "frame_window": args.frames or "all",
         "populated": movers is not None,
         "moving_objects": 0 if movers is None else len(movers["ops"]),
         "mean_objects_moved_per_frame": 0 if movers is None else moved_total / max(len(frames), 1),
