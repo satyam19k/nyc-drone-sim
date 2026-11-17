@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nyc-drone-sim"
+version = "0.1.0"
+description = "Drone video of any New York City location, rendered in Isaac Sim from city open data"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "scipy",
+    "shapely",
+    "pyproj",
+    "pyyaml",
+    "requests",
+    "pillow",
+    "matplotlib",
+    "mapbox-earcut",
+    "usd-core",
+    "static-ffmpeg",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+nyc-drone = "nyc_drone_sim.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["nyc_drone_sim*"]
