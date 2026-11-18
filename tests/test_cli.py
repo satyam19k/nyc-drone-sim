@@ -1,4 +1,6 @@
 """Option handling of the nyc-drone command, without network, GPU or rendering."""
+import json
+
 import pytest
 
 from nyc_drone_sim import cli
@@ -52,3 +54,48 @@ def test_route_refuses_flight_options(tmp_path):
 def test_no_slurm_option():
     with pytest.raises(SystemExit):
         cli.build_parser().parse_args(["run", "--address", "x", "--slurm"])
+
+
+def test_sim_fog_brightness_per_altitude(tmp_path):
+    cfg, _, _ = resolve("--address", "x", "--altitude-ft", "150", "500", "--sim-weather", "fog", "--out", str(tmp_path))
+    assert cfg["_run"]["sim_weather"] == "fog"
+    assert [cli.fog_brightness(cfg, x) for x in (100, 150, 325, 500, 800)] == [10.0, 10.0, 6.0, 2.0, 2.0]
+    args = cli.sim_weather_args(cfg, 500)
+    assert args[:2] == ["--sim-weather", "fog_heavy"]
+    assert json.loads(args[3]) == {"weather": {"fog_heavy": {"color_intensity": 2.0}}}
+    assert cli.sim_weather_args(resolve("--address", "x", "--out", str(tmp_path))[0], 150) == []
+
+
+def test_sim_fog_reaches_the_renderer(tmp_path, monkeypatch):
+    a = cli.build_parser().parse_args(["route", "canal-shore-street", "--sim-weather", "fog", "--out", str(tmp_path)])
+    cfg, location, variant = cli.resolve(a)
+    cmds = []
+
+    class Stop(Exception):
+        pass
+
+    def fake_call(cmd, log):
+        cmds.append(cmd)
+        if len(cmds) == len(cfg["altitudes_ft"]):
+            raise Stop
+        return 1.0
+    monkeypatch.setattr(cli, "call", fake_call)
+    monkeypatch.setattr(cli, "check_simulator", lambda a: None)
+    (tmp_path / "work").mkdir()
+    with pytest.raises(Stop):
+        cli.step_render(a, cfg, location, variant, tmp_path / "config.yaml", tmp_path, {})
+    for alt, cmd in zip(cfg["altitudes_ft"], cmds):
+        assert cmd[cmd.index("--sim-weather") + 1] == "fog_heavy"
+        assert json.loads(cmd[cmd.index("--appearance") + 1])["weather"]["fog_heavy"]["color_intensity"] == {150: 10.0, 500: 2.0}[alt]
+        assert cmd[cmd.index("--look") + 1] == "standard"
+
+
+@pytest.mark.parametrize("args, command, message", [
+    (["--look", "enhanced"], "run", "not combined with --look enhanced"),
+    (["--realism", "model"], "run", "leave --realism model out"),
+    ([], "generate", "for run, route, reproduce and render"),
+    ([], "check", "for run, route, reproduce and render"),
+])
+def test_sim_fog_refused(tmp_path, args, command, message):
+    with pytest.raises(SystemExit, match=message):
+        resolve("--address", "x", "--sim-weather", "fog", "--out", str(tmp_path), *args, command=command)
