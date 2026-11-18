@@ -13,7 +13,7 @@ from PIL import Image
 from _checks import CheckList, IMAGES, shown
 
 from nyc_drone_sim.common import for_location, altitude_m, clip_settings, load_config, slugify, variant_suffix
-from nyc_drone_sim.postrender import MODALITIES, bundle_dir, id_to_class, probe
+from nyc_drone_sim.postrender import MODALITIES, bundle_dir, id_to_class, path_frames, probe
 
 
 COLOUR_PSNR_DB = 35.0      # render-7: colour below this is a warning, not a failure
@@ -60,7 +60,8 @@ def main():
     flat = set(cfg["scene"]["flat_classes"])
     B = {k: bundle_dir(cfg, a.run, slug, k) for k in alts}
     bundle = {k: json.loads((B[k] / "bundle.json").read_text()) for k in alts}
-    path = {k: json.loads((B[k] / "path.json").read_text()) for k in alts}
+    # the path frames of each bundle's own frames (a window render keeps the whole path.json)
+    path = {k: {**json.loads((B[k] / "path.json").read_text()), "frames": path_frames(B[k])} for k in alts}
 
     def label_ids(k):
         return {c: i for i, c in id_to_class(B[k]).items()}

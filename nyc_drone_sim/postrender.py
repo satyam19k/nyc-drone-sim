@@ -38,6 +38,21 @@ def bundle_dir(cfg: dict, run_id: str, slug: str, alt_ft) -> Path:
     return REPO_ROOT / cfg["output"]["runs_dir"] / run_id / slug / str(int(alt_ft))
 
 
+def path_frames(bdir: Path) -> list[dict]:
+    """The flight-path frames of a bundle's own frames. A render made with --frames START:COUNT keeps
+    the whole path.json, so its frame i is path frame START + i; each path frame's "index" is its
+    place in the whole path, which is also how recorded traffic motion is indexed."""
+    b = json.loads((bdir / "bundle.json").read_text())
+    frames = json.loads((bdir / "path.json").read_text())["frames"]
+    window = b.get("frame_window") or "all"
+    if window != "all":
+        first, count = (int(v) for v in str(window).split(":"))
+        frames = frames[first:first + count]
+        if len(frames) != count:
+            raise RuntimeError(f"{bdir}: frame window {window} is outside its path's frames")
+    return frames
+
+
 def id_to_class(bdir: Path) -> dict[int, str]:
     """Class of every semantic id in a bundle: the map saved by the renderer, completed by
     semantic_labels.json when complete_labels() has written one."""
@@ -66,6 +81,7 @@ def complete_labels(bdir: Path, sdir: Path, cfg: dict, every: int = 16) -> dict:
     b = json.loads((bdir / "bundle.json").read_text())
     known = {int(i): v["class"] for i, v in b["semantic_info"]["idToLabels"].items()}
     path = json.loads((bdir / "path.json").read_text())
+    pframes = path_frames(bdir)
     K = path["intrinsics"]
     n = b["clip"]["frames"]
     samples: dict[int, list] = {}
@@ -75,7 +91,7 @@ def complete_labels(bdir: Path, sdir: Path, cfg: dict, every: int = 16) -> dict:
         if not new:
             continue
         d = np.load(bdir / "metric_depth" / f"depth_{i:04d}.npy")
-        M = np.array(path["frames"][i]["camera_to_world"])
+        M = np.array(pframes[i]["camera_to_world"])
         for k in new:
             v, u = np.nonzero(sem == k)
             pick = np.linspace(0, len(u) - 1, min(len(u), 200)).astype(int)
