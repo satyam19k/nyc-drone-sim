@@ -390,6 +390,12 @@ appearance:
       surfaces: [road, sidewalk, plaza, parking, median, path, pier, boardwalk]
       darken: 0.6
       roughness: 0.12
+  # nyc-drone --sim-weather fog: the renderer's heavy fog, with the fog brightness (color_intensity)
+  # measured for each altitude on 17 Nov 2026: 10 at 150 ft, 2 at 500 ft, where 10 turns the frame
+  # white. Other altitudes are interpolated linearly between these, and held at the ends.
+  sim_fog:
+    weather: fog_heavy
+    color_intensity_by_altitude_ft: {150: 10.0, 500: 2.0}
   enhanced:
     texture_px: 1024
     sky:

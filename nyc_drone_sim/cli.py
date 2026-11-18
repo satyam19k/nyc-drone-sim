@@ -87,6 +87,9 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--look", choices=["standard", "enhanced"],
                    help="enhanced = sky light, rippled water, ground textures, wall and roof variation "
                         "(default standard, or the route file's look)")
+    g.add_argument("--sim-weather", choices=["clear", "fog"], default="clear",
+                   help="fog = the renderer's heavy fog, fog brightness 10 at 150 ft and 2 at 500 ft "
+                        "(appearance.sim_fog in the config); with the standard look, without the video model")
 
     g = ap.add_argument_group("video model")
     g.add_argument("--realism", choices=["none", "model"], default="none",
@@ -180,6 +183,14 @@ def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
                          "the video model: add --realism model")
     if a.frames and a.method != "chain":
         raise SystemExit("--frames is for --method chain; --method window takes --start")
+    if a.sim_weather != "clear":
+        if a.command not in ("run", "route", "reproduce", "render"):
+            raise SystemExit("--sim-weather is for run, route, reproduce and render")
+        if a.look == "enhanced":
+            raise SystemExit("--sim-weather fog is not combined with --look enhanced yet")
+        if a.realism == "model":
+            raise SystemExit("--sim-weather fog renders the fog itself: leave --realism model out "
+                             "(the video model's fog takes this render as --guide-video)")
     if "fog" in a.weather:
         if a.weather != ["fog"] or not a.guide_video:
             raise SystemExit("--weather fog goes alone, with --guide-video: a render of the same flight made with "
@@ -250,7 +261,9 @@ def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
     out = Path(a.out) if a.out else REPO_ROOT / "runs" / slugify(location)
     out = out.resolve()
     cfg["output"] = {"scenes_dir": str(out / "work" / "scenes"), "runs_dir": str(out / "work")}
-    cfg["_run"] = {"out": str(out), "location": location, "path": path_kind, "look": look}
+    if a.sim_weather != "clear" and look == "enhanced":
+        raise SystemExit("--sim-weather fog is not combined with --look enhanced yet (the route file sets it)")
+    cfg["_run"] = {"out": str(out), "location": location, "path": path_kind, "look": look, "sim_weather": a.sim_weather}
     return cfg, location, variant
 
 
@@ -281,6 +294,9 @@ def dry_run(a, cfg: dict, location: str, variant: str | None) -> None:
     extent = (f"corridor of {place['buffer_m']} m around {len(place['route_m'])} waypoints" if place is not None
               else f"circle of radius {cfg['scene_radius_m']:.0f} m")
     print(f"scene        {extent}, objects {'on' if cfg['populate']['enabled'] else 'off'}, seed {cfg['seed']}, look {cfg['_run']['look']}")
+    if cfg["_run"]["sim_weather"] == "fog":
+        print("weather      renderer's heavy fog, brightness "
+              + ", ".join(f"{fog_brightness(cfg, int(x)):g} at {x} ft" for x in cfg["altitudes_ft"]))
     speeds = ([place["speed_mps"]] * len(alts) if place is not None and place.get("sync_ground_track")
               else [cfg["speed_mps"][int(x)] for x in alts])
     print(f"flight       {cfg['_run']['path']} path, altitudes {alts} ft, speeds {speeds} m/s")
@@ -414,7 +430,8 @@ def step_render(a, cfg, location, variant, cfg_path: Path, out: Path, timings: d
     look = ("--look", cfg["_run"]["look"])
     for alt in cfg["altitudes_ft"]:
         timings[f"render_{alt}"] = call(module(a.sim_python, "sim.render", cfg_path, location,
-                                               "--altitude", str(alt), "--run", "render", *v, *look), log)
+                                               "--altitude", str(alt), "--run", "render", *v, *look,
+                                               *sim_weather_args(cfg, int(alt))), log)
     timings["postrender"] = call(module(sys.executable, "postrender", cfg_path, location, "--run", "render", *v), log)
     for alt in cfg["altitudes_ft"]:
         bdir = out / "work" / "render" / slug / str(alt)
@@ -425,6 +442,26 @@ def step_render(a, cfg, location, variant, cfg_path: Path, out: Path, timings: d
         poses = [json.loads(p.read_text()) for p in sorted((bdir / "camera").glob("camera_*.json"))]
         (dst / "camera_poses.json").write_text(json.dumps(poses, indent=1) + "\n")
     side_by_side(out, cfg["altitudes_ft"])
+
+
+def fog_brightness(cfg: dict, alt_ft: int) -> float:
+    """The fog brightness for an altitude: linear between the measured altitudes, held at the ends."""
+    table = sorted((int(k), float(v)) for k, v in cfg["appearance"]["sim_fog"]["color_intensity_by_altitude_ft"].items())
+    if alt_ft <= table[0][0]:
+        return table[0][1]
+    for (x0, y0), (x1, y1) in zip(table, table[1:]):
+        if alt_ft <= x1:
+            return round(y0 + (y1 - y0) * (alt_ft - x0) / (x1 - x0), 3)
+    return table[-1][1]
+
+
+def sim_weather_args(cfg: dict, alt_ft: int) -> list[str]:
+    """The renderer's options for --sim-weather at one altitude."""
+    if cfg["_run"].get("sim_weather", "clear") == "clear":
+        return []
+    fog = cfg["appearance"]["sim_fog"]
+    return ["--sim-weather", fog["weather"],
+            "--appearance", json.dumps({"weather": {fog["weather"]: {"color_intensity": fog_brightness(cfg, alt_ft)}}})]
 
 
 def side_by_side(out: Path, alts: list) -> None:
@@ -542,6 +579,9 @@ def write_report(cfg, location, out: Path, timings: dict, checks: dict | None, p
     report = {
         "location": {"query": location, **{k: loc.get(k) for k in ("label", "lat", "lon", "borough", "scene_radius_m")}},
         "altitudes_ft": cfg["altitudes_ft"],
+        "render": {"look": cfg["_run"].get("look"), "sim_weather": cfg["_run"].get("sim_weather", "clear"),
+                   **({"fog_brightness": {str(x): fog_brightness(cfg, int(x)) for x in cfg["altitudes_ft"]}}
+                      if cfg["_run"].get("sim_weather") == "fog" else {})},
         "data_sources": sorted({s["url"].split("?")[0] for s in sources if isinstance(s, dict) and "url" in s}),
         "scene": {k: meta.get(k) for k in meta if k != "origin"},
         "objects": counts,
