@@ -52,10 +52,10 @@ render, flat colours"): no useful effect (K6, K11; see 01).
 
 ![The river sentence paints a pool on the lawn](img/02_river_sentence_pool.jpg)
 
-### P1 to P3: the turquoise pool, tested on RunPod
+### P1 to P3: the turquoise pool (planned, not run)
 
 Street window, Canal Street 150 ft, frames 598 to 690 (the window where K10 and K11 painted the
-pool). Run on one A100 80 GB on RunPod.
+pool). Planned for one A100 80 GB.
 
 | Run | Depth / edge / seg | Prompt |
 | --- | --- | --- |
@@ -63,7 +63,9 @@ pool). Run on one A100 80 GB on RunPod.
 | P2 | 0.5 / 0.3 / 0.5 (K2) | The single full-clip prompt (the one the chained K2 clip used) |
 | P3 | 0.7 / 0.5 / 0.8 | The single full-clip prompt |
 
-> **Gap.** Sheet (`img/`, to be copied in), structure numbers and findings to be added.
+> **Not run.** These three runs were never made, so there is no sheet and no finding. The final
+> clips avoid the problem another way: their prompts are built from the classes in view, and the
+> river sentence is used only when water is in frame (see 08).
 
 ![One prompt for the flight (row 2) against a prompt per window (row 3)](img/02_one_prompt_vs_prompt_per_window.jpg)
 

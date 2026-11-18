@@ -25,6 +25,10 @@ export HF_HUB_OFFLINE=1                                # use the downloaded weig
 # without the advance download, leave HF_HUB_OFFLINE unset and export HF_TOKEN=<your read token>
 ```
 
+The model steps (4, 5, 7 and 8) run `${MODEL_PYTHON:-env_gen/bin/python}`: the Python in
+`MODEL_PYTHON`, or `env_gen/bin/python` when it is not set. Set `MODEL_PYTHON` when the model's
+environment is somewhere other than `env_gen/` in this repository.
+
 ## Why steps 1, 2, 4, 5 and 7 use module commands
 
 `nyc-drone route` and `nyc-drone reproduce` cannot take a frame range, and they render every
@@ -124,7 +128,7 @@ enhanced render.
 which holds `out.mp4`, `spec.json`, `prompt.txt`, `clip.json`, `timing.json` and `run.log`.
 
 ```bash
-env_gen/bin/python -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
+${MODEL_PYTHON:-env_gen/bin/python} -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
     --altitude 150 --method window --start 0 --weather clear --setting M2
 ```
 
@@ -143,7 +147,7 @@ and its `bundle.json` must record fog.
 with the same files as step 4.
 
 ```bash
-env_gen/bin/python -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
+${MODEL_PYTHON:-env_gen/bin/python} -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
     --altitude 150 --method window --start 0 --weather fog --setting fog_guide \
     --guide-video runs/quick/canal/work/fog/canal-shore-street/150/clip_0000/rgb.mp4
 ```
@@ -174,7 +178,7 @@ edges 1.0, with no segmentation.
 with the same files as step 4.
 
 ```bash
-env_gen/bin/python -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
+${MODEL_PYTHON:-env_gen/bin/python} -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
     --altitude 150 --method window --start 0 --weather snow --setting t4
 ```
 
@@ -198,7 +202,7 @@ which holds:
 - `sheet.png`, 8 frames of the render above the same frames of the result.
 
 ```bash
-env_gen/bin/python -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
+${MODEL_PYTHON:-env_gen/bin/python} -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
     --altitude 150 --method chain --weather clear --setting M2
 ```
 

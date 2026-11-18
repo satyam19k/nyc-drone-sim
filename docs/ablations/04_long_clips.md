@@ -97,3 +97,31 @@ memory, so it does not fit an 80 GB card. Ten independent windows took 65 minute
 - **Next to try, untested:** chained K2 with one prompt per chunk, which keeps chaining's
   continuity and fixes its prompt problem; and windows that all share one style reference image,
   which may make them agree.
+
+The findings above are kept as they were measured. What the final run showed:
+
+## Result in the final run
+
+With setting M2 (the enhanced render's colours as a blurred guide, weight 0.3) and a prompt built
+from the classes in view of each chain, chaining is continuous: the colour guide holds the look,
+and the class-based prompt stops the invented content. On one RTX PRO 6000 (96 GB):
+
+- A 240- or 248-frame chain is three 93-frame chunks. Peak GPU memory was 70.6 to 71.2 GB for
+  every three-chunk chain (two-chunk, 185 frames: 71.6 GB). Each took 41.1 to 43.8 min.
+- The 30 s clips are two 248-frame chains (route frames 288 to 535 and 520 to 767) cross-faded by
+  `nyc-drone join` over their 16 shared frames: 248 + 248 - 16 = 480 frames.
+- `seams.json` checks each join between chunks against four standard deviations above the clip's
+  mean frame-to-frame change:
+
+| Clip | Mean change | Limit | Join at 93 | Join at 185 | Flagged |
+| --- | --- | --- | --- | --- | --- |
+| Canal Street 150 ft, frames 288-535 | 6.34 | 13.29 | 6.01 | 9.19 | none |
+| Canal Street 150 ft, frames 520-767 | 9.33 | 13.36 | 10.13 | 7.28 | none |
+| Canal Street 500 ft, frames 288-535 | 6.25 | 13.07 | 6.74 | 8.30 | none |
+| Canal Street 500 ft, frames 520-767 | 4.65 | 5.56 | 4.73 | 4.97 | none |
+| Bronx 150 ft | 11.21 | 14.18 | 10.87 | 11.09 | none |
+| Grand Army Plaza 500 ft | 6.09 | 8.60 | 6.25 | 5.36 | none |
+| Canal Street 150 ft, fog | 1.15 | 1.93 | **2.18** | 1.04 | **93** |
+
+Only the fog clip has a flagged join: its second chunk starts about 4.5% brighter. Fog makes the
+change between frames small and even, so its limit is tight. See 08 for the clips themselves.

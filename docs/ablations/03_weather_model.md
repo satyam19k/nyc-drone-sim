@@ -16,7 +16,7 @@ edges (outlines from segmentation and depth, without the simulator's cast shadow
 | Short runs F01 to F06, Canal Street | `run_009/canal-shore-street/150/…/filler_93f/` | Snow, fog and rain all at 1.0 / 1.0 / none |
 | Full snow clips | `run_009/canal-shore-street/150/…/snow_t4_windows/`, `run_006/hudson-park-run/150/…/snow_t4_windows/` | t4, independent windows, a prompt per window |
 
-The fallback model named in the brief (Wan2.1-VACE) was not tried.
+The fallback model considered, Wan2.1-VACE, was not tried.
 
 ## What we saw
 
@@ -93,3 +93,25 @@ Canal Street street window (frames 598-690):
   about 110 m, so there is little for haze or falling rain to act on. Snow should still show as
   white ground, and it does not, so the view is not the whole story.
 - **Not tried:** the fallback model, a style reference image, guidance above 3 for weather.
+
+The findings above are kept as they were measured. What changed afterwards:
+
+## Since then: the final run
+
+**Fog works with a fog guide.** The renderer renders the same flight in its heavy fog
+(`--sim-weather fog_heavy`), and that render becomes the model's colour guide: setting
+`fog_guide` is depth 0.5, geometry edges 0.3 and segmentation 0.5 from the clear enhanced render,
+plus the fog render as `vis` (weight 0.3, blur high), with the fog paragraph in the prompt. The
+final fog clip (Canal Street, 150 ft, route frames 114 to 353, one 240-frame chain) is pale and
+low in contrast, with the shoreline, crossings and trees still readable. Its second chunk starts
+about 4.5% brighter (mean colour 208.7 / 205.3 / 203.4 in chunk 1, 218.2 / 215.4 / 214.1 in
+chunk 2), so the fog thickens in one step at 5.8 s; the seam check flags that join (change 2.18,
+limit 1.93). The guide must have the same frame count and camera poses as the render it guides.
+
+**The cause of the snow failure is found.** A chain's prompt is built from the classes in view:
+each class group adds a fixed sentence from `configs/gen_prompts_classes.yaml`, then the weather
+paragraph follows. Those sentences describe "flat, clean and dry" sidewalks and plazas, "green
+lawns" and "leafy green tree canopies" in every weather, and they outweigh the snow paragraph
+that comes after them. This matches the observation above that snow appeared only when the scene
+description itself said snow on each surface. The fix, class sentences written per weather, is
+not implemented, so the v1.0 results have no snow. Rain is not available.
