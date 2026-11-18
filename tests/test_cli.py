@@ -32,9 +32,9 @@ def test_address_and_coordinates_together_are_refused(tmp_path):
         resolve("--address", "x", "--lat", "1", "--lon", "2", "--out", str(tmp_path))
 
 
-def test_only_clear_and_snow_weather(tmp_path):
-    with pytest.raises(SystemExit, match="weather fog is not available yet"):
-        resolve("--address", "x", "--realism", "model", "--weather", "fog", "--out", str(tmp_path))
+def test_rain_is_not_available(tmp_path):
+    with pytest.raises(SystemExit, match="weather rain is not available yet"):
+        resolve("--address", "x", "--realism", "model", "--weather", "rain", "--out", str(tmp_path))
     resolve("--address", "x", "--realism", "model", "--weather", "snow", "--out", str(tmp_path))
 
 

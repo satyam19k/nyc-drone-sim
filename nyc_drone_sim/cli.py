@@ -3,11 +3,13 @@
     nyc-drone run --address "175 5th Avenue, Manhattan" --altitude-ft 150 500 --duration-s 30
     nyc-drone route configs/routes/hudson-park-run.yaml
     nyc-drone reproduce canal-shore-street
+    nyc-drone join A.mp4 B.mp4 --overlap 16 --out C.mp4
 
 `run` and `route` do everything; `reproduce` flies a route from configs/routes/ and compares its
 camera poses with the saved ones; `scene`, `render`, `generate` and `check` do one part each and
-take the same options. The command only resolves options into a config file and calls the
-existing modules in order; how scenes, paths and renders are computed is not changed here.
+take the same options; `join` cross-fades two generated chains that share frames. The command
+only resolves options into a config file and calls the existing modules in order; how scenes,
+paths and renders are computed is not changed here.
 
 Everything a run produces is under --out:
 
@@ -38,7 +40,7 @@ from .common import REPO_ROOT, load_config, slugify
 from . import routes as routes_mod
 
 COMMANDS = ("run", "route", "reproduce", "scene", "render", "generate", "check")
-WEATHERS, NOT_YET = ("clear", "snow"), ("fog", "rain")
+WEATHERS, NOT_YET = ("clear", "snow", "fog"), ("rain",)
 MODEL_SETTINGS = ("K2", "M2", "t4")
 POSE_TOLERANCE = (0.05, 0.2)    # metres, degrees: the render check's own limits for camera pose
 VIDEOS = ("rgb", "depth", "segmentation", "edges")
@@ -90,7 +92,8 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--realism", choices=["none", "model"], default="none",
                    help="model = restyle the render with the video model (needs an 80 GB GPU)")
     g.add_argument("--weather", nargs="+", default=["clear"],
-                   help="clear or snow, one or more (fog and rain are not available yet)")
+                   help="clear or snow, one or more; fog alone, with --guide-video of a render made with the "
+                        "renderer's fog (rain is not available yet)")
     g.add_argument("--method", choices=["window", "chain"], default="window",
                    help="window: one 93-frame window from --start (default); chain: --frames in one model run, "
                         "each 93-frame chunk continuing from the last frame of the one before")
@@ -101,8 +104,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "(blur control 0.3, preset high), for renders made with --look enhanced; t4: depth 1.0, "
                         "geometry edges 1.0, no segmentation (default: K2 for clear, t4 for snow)")
     g.add_argument("--guide-video", nargs="+", metavar="PATH",
-                   help="with --model-setting M2: a colour video of the same flight (same frames and camera poses) "
-                        "to guide the colours instead of the render's own rgb.mp4; one per altitude")
+                   help="with --model-setting M2 or --weather fog: a colour video of the same flight (same frames "
+                        "and camera poses) to guide the colours instead of the render's own rgb.mp4; one per altitude")
     g.add_argument("--guide-poses", nargs="+", metavar="PATH",
                    help="the camera_poses.json of each guide video, checked against the render's poses "
                         "(found by itself when it lies beside the video)")
@@ -177,8 +180,15 @@ def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
                          "the video model: add --realism model")
     if a.frames and a.method != "chain":
         raise SystemExit("--frames is for --method chain; --method window takes --start")
-    if a.guide_video and a.model_setting != "M2":
-        raise SystemExit("--guide-video is the colour guide of --model-setting M2")
+    if "fog" in a.weather:
+        if a.weather != ["fog"] or not a.guide_video:
+            raise SystemExit("--weather fog goes alone, with --guide-video: a render of the same flight made with "
+                             "the renderer's fog")
+        if a.model_setting:
+            raise SystemExit("--weather fog has its own setting (depth 0.5, geometry edges 0.3, segmentation 0.5, "
+                             "the guide's colours 0.3): leave --model-setting out")
+    elif a.guide_video and a.model_setting != "M2":
+        raise SystemExit("--guide-video is the colour guide of --model-setting M2 or of --weather fog")
     if a.guide_poses and (not a.guide_video or len(a.guide_poses) != len(a.guide_video)):
         raise SystemExit("--guide-poses: one per --guide-video")
     cfg = load_config()
@@ -543,6 +553,10 @@ def write_report(cfg, location, out: Path, timings: dict, checks: dict | None, p
 
 
 def main(argv=None) -> None:
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] == ["join"]:                    # two files in, one out: its own options
+        from .gen.join import main as join_main
+        sys.exit(join_main(argv[1:]))
     a = build_parser().parse_args(argv)
     cfg, location, variant = resolve(a)
     if a.dry_run:

@@ -394,14 +394,39 @@ def guide_poses_beside(guide: Path) -> Path | None:
     return None
 
 
-def check_guide(bdir: Path, setting_name: str, setting: dict, guide: Path, poses: Path | None) -> dict:
+def guide_bundle(guide: Path) -> Path | None:
+    """bundle.json of the render the guide video comes from: <bundle>/clip_0000/rgb.mp4, a video
+    beside its bundle.json, or <run>/<altitude>/rgb.mp4 of a nyc-drone run."""
+    cands = [guide.parent.parent / "bundle.json", guide.parent / "bundle.json",
+             *sorted((guide.parent.parent / "work" / "render").glob(f"*/{guide.parent.name}/bundle.json"))]
+    return next((c for c in cands if c.exists()), None)
+
+
+def check_request(weather: str, setting_name: str, guide: str | None) -> None:
+    """Fog only from a guide video rendered with fog, with its own setting; rain not at all."""
+    if weather == "rain":
+        raise SystemExit("weather rain is not available yet")
+    if weather == "fog" and not guide:
+        raise SystemExit("--weather fog needs --guide-video: a render of the same flight made with the renderer's fog")
+    if weather == "fog" and setting_name != "fog_guide":
+        raise SystemExit(f"--weather fog uses the setting fog_guide, not {setting_name}")
+
+
+def check_guide(bdir: Path, setting_name: str, setting: dict, guide: Path, poses: Path | None,
+                weather: str = "clear") -> dict:
     """A colour video of the same flight for the blur control: same frame count as the bundle and,
-    when its camera poses are known, the same poses within the render check's limits."""
+    when its camera poses are known, the same poses within the render check's limits. For fog, it
+    must come from a render made with the renderer's fog."""
     from nyc_drone_sim.routes import compare_poses
     if not setting.get("vis"):
-        raise SystemExit(f"--guide-video is for a setting with the colour guide (M2), not {setting_name}")
+        raise SystemExit(f"--guide-video is for a setting with the colour guide (M2, or fog), not {setting_name}")
     if not guide.exists():
         raise SystemExit(f"--guide-video {guide}: no such file")
+    gb = guide_bundle(guide)
+    guide_weather = (json.loads(gb.read_text()).get("appearance") or {}).get("weather", "clear") if gb else None
+    if weather == "fog" and not str(guide_weather or "").startswith("fog"):
+        raise SystemExit(f"--guide-video {guide}: --weather fog needs a render made with the renderer's fog; "
+                         + (f"this one was rendered with {guide_weather}" if gb else "no bundle.json found to tell"))
     n = int(json.loads((bdir / "bundle.json").read_text())["clip"]["frames"])
     g = int(video_info(guide)["frames"])
     if g != n:
@@ -419,7 +444,8 @@ def check_guide(bdir: Path, setting_name: str, setting: dict, guide: Path, poses
                              f"{result['max_position_m']:.3f} m and {result['max_rotation_deg']:.3f} deg "
                              f"(limits {GUIDE_POSE_TOLERANCE[0]} m, {GUIDE_POSE_TOLERANCE[1]} deg)")
     print(f"guide video {guide}: {g} frames; poses {result if isinstance(result, str) else 'match'}", flush=True)
-    return {"path": str(guide.resolve()), "sha256": file_sha256(guide), "frames": g, "pose_check": result}
+    return {"path": str(guide.resolve()), "sha256": file_sha256(guide), "frames": g, "pose_check": result,
+            "rendered_weather": guide_weather}
 
 
 def guide_for_range(guide: Path, start: int, count: int, n: int, dest: Path, cfg: dict) -> Path:
@@ -438,8 +464,9 @@ def run_request(bdir: Path, weather: str, setting_name: str, cfg: dict, method: 
     prompt and clip.json are kept beside out.mp4, so the clip can be made again exactly."""
     n = video_info(bdir / "clip_0000" / "rgb.mp4")["frames"]
     start, count = frame_range(frames, n) if method == "chain" else frame_range(f"{start}:{WINDOW}", n)
+    check_request(weather, setting_name, guide)
     g = check_guide(bdir, setting_name, prompts()["settings"][setting_name], Path(guide),
-                    Path(guide_poses) if guide_poses else None) if guide else None
+                    Path(guide_poses) if guide_poses else None, weather) if guide else None
     setting, info = describe(bdir, weather, setting_name, cfg, method, start, count, g)
     if info["look_warning"]:
         print(info["look_warning"], flush=True)
@@ -480,8 +507,9 @@ def write_specs(bdir: Path, weather: str, setting_name: str, cfg: dict, method: 
         raise SystemExit(f"--specs-only {out}: the folder is not empty; give a new one")
     n = int(json.loads((bdir / "bundle.json").read_text())["clip"]["frames"])
     start, count = frame_range(frames, n) if method == "chain" else frame_range(f"{start}:{WINDOW}", n)
+    check_request(weather, setting_name, guide)
     g = check_guide(bdir, setting_name, prompts()["settings"][setting_name], Path(guide),
-                    Path(guide_poses) if guide_poses else None) if guide else None
+                    Path(guide_poses) if guide_poses else None, weather) if guide else None
     setting, info = describe(bdir, weather, setting_name, cfg, method, start, count, g)
     if info["look_warning"]:
         print(info["look_warning"], flush=True)

@@ -317,7 +317,6 @@ def test_generate_step_specs_only_with_a_guide(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("args, message", [
-    (["--weather", "fog"], "not available yet"),
     (["--weather", "rain"], "not available yet"),
     (["--weather", "hail"], "choose from"),
     (["--frames", "0:93"], "--method chain"),
@@ -339,3 +338,76 @@ def test_model_options_need_the_model(tmp_path):
     a = cli.build_parser().parse_args(["run", "--lat", "40.7", "--lon", "-74", "--out", str(tmp_path), "--realism", "model",
                                        "--weather", "snow", "--method", "chain", "--model-setting", "M2"])
     assert cli.resolve(a)[1] == "40.700000,-74.000000"
+
+
+def make_render_guide(root: Path, weather: str) -> Path:
+    """clip_0000/rgb.mp4 of another render of the same flight, in its bundle, made with `weather`."""
+    b = root / f"render_{weather}" / "150"
+    (b / "clip_0000").mkdir(parents=True)
+    (b / "camera").mkdir()
+    (b / "bundle.json").write_text(json.dumps({"location": "tiny", "clip": {"frames": FRAMES},
+                                               "appearance": {"weather": weather, "look": "standard"}}))
+    (b / "clip_0000" / "rgb.mp4").write_bytes(f"{weather} colours".encode())
+    for i in range(FRAMES):
+        (b / "camera" / f"camera_{i:04d}.json").write_text(json.dumps(pose(i)))
+    return b / "clip_0000" / "rgb.mp4"
+
+
+def test_fog_from_a_fog_render(tmp_path, gcfg, fake_video):
+    bdir = make_bundle(tmp_path, water=True)
+    cut(bdir, "chain_0000_0200")
+    guide = make_render_guide(tmp_path, "fog_heavy")
+    out = makeclip.write_specs(bdir, "fog", "fog_guide", gcfg, "chain", tmp_path / "specs", guide=str(guide))
+    spec, clip = json.loads((out / "spec.json").read_text()), json.loads((out / "clip.json").read_text())
+    assert spec["depth"] == {"control_path": "depth_control.mp4", "control_weight": 0.5}
+    assert spec["edge"] == {"control_path": "edges_geometry.mp4", "control_weight": 0.3}
+    assert spec["seg"] == {"control_path": "segmentation.mp4", "control_weight": 0.5}
+    assert spec["vis"] == {"control_weight": 0.3, "preset_blur_strength": "high"}
+    assert spec["video_path"] == "guide.mp4" and (out / "guide.mp4").read_bytes() == b"fog_heavy colours"
+    assert "Thick grey fog" in spec["prompt"] and "river is flat grey" in spec["prompt"]
+    assert clip["guide_video"]["rendered_weather"] == "fog_heavy"
+    assert clip["guide_video"]["pose_check"]["poses"].endswith("camera")       # found in the guide's bundle
+
+
+@pytest.mark.parametrize("weather, setting, guide_weather, message", [
+    ("fog", "fog_guide", None, "needs --guide-video"),
+    ("fog", "fog_guide", "clear", "rendered with clear"),
+    ("fog", "K2", "fog_heavy", "uses the setting fog_guide"),
+    ("rain", "K2", None, "not available yet"),
+])
+def test_fog_needs_a_fog_render(tmp_path, gcfg, fake_video, weather, setting, guide_weather, message):
+    bdir = make_bundle(tmp_path, water=True)
+    guide = str(make_render_guide(tmp_path, guide_weather)) if guide_weather else None
+    with pytest.raises(SystemExit, match=message):
+        makeclip.write_specs(bdir, weather, setting, gcfg, "chain", tmp_path / "specs", guide=guide)
+
+
+@pytest.mark.parametrize("args, message", [
+    (["--weather", "fog"], "--guide-video"),
+    (["--weather", "clear", "fog", "--guide-video", "g.mp4"], "goes alone"),
+    (["--weather", "fog", "--guide-video", "g.mp4", "--model-setting", "M2"], "leave --model-setting out"),
+])
+def test_cli_fog_rules(tmp_path, args, message):
+    a = cli.build_parser().parse_args(["generate", "--lat", "40.7", "--lon", "-74", "--out", str(tmp_path), *args])
+    with pytest.raises(SystemExit, match=message):
+        cli.resolve(a)
+
+
+def test_generate_step_fog_uses_its_setting(tmp_path, monkeypatch):
+    out, bdir = setup_run(tmp_path)
+    guide, cmds = make_render_guide(tmp_path, "fog_heavy"), []
+
+    def fake_call(cmd, log):
+        cmds.append(cmd)
+        dest = Path(cmd[cmd.index("--specs-only") + 1])
+        dest.mkdir(parents=True)
+        (dest / "spec.json").write_text("{}")
+        return 1.0
+    monkeypatch.setattr(cli, "call", fake_call)
+    a = cli.build_parser().parse_args(["generate", "--lat", "40.7", "--lon", "-74", "--out", str(out), "--weather", "fog",
+                                       "--guide-video", str(guide), "--method", "chain", "--frames", "0:93",
+                                       "--specs-only", str(tmp_path / "specs")])
+    cli.resolve(a)
+    cli.step_generate(a, {"altitudes_ft": [150]}, "tiny", out, {})
+    (cmd,) = cmds
+    assert cmd[cmd.index("--setting") + 1] == "fog_guide" and cmd[cmd.index("--weather") + 1] == "fog"
