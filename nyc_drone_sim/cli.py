@@ -13,7 +13,9 @@ Everything a run produces is under --out:
 
     scene.usd  flight.json  report.json  side_by_side.mp4  config.yaml
     <altitude>/rgb.mp4 depth.mp4 segmentation.mp4 edges.mp4 camera_poses.json
-    <altitude>/weather/clear_window_<start>.mp4   with --realism model (one 93-frame window)
+    <altitude>/weather/<weather>_<setting>_window_<start>.mp4             with --realism model
+    <altitude>/weather/<weather>_<setting>_chain_<start>_<count>.mp4      with --method chain
+        each beside its .spec.json (the model's input), .prompt.txt and .clip.json
     work/      the intermediate files of every step
 """
 from __future__ import annotations
@@ -36,6 +38,8 @@ from .common import REPO_ROOT, load_config, slugify
 from . import routes as routes_mod
 
 COMMANDS = ("run", "route", "reproduce", "scene", "render", "generate", "check")
+WEATHERS, NOT_YET = ("clear", "snow"), ("fog", "rain")
+MODEL_SETTINGS = ("K2", "M2", "t4")
 POSE_TOLERANCE = (0.05, 0.2)    # metres, degrees: the render check's own limits for camera pose
 VIDEOS = ("rgb", "depth", "segmentation", "edges")
 # Measured on this project's hardware; used only for the --dry-run estimate.
@@ -85,13 +89,17 @@ def build_parser() -> argparse.ArgumentParser:
     g = ap.add_argument_group("video model")
     g.add_argument("--realism", choices=["none", "model"], default="none",
                    help="model = restyle the render with the video model (needs an 80 GB GPU)")
-    g.add_argument("--weather", nargs="+", default=["clear"], help="clear (other weather is not available yet)")
-    g.add_argument("--start", type=int, default=0, help="first frame of the 93-frame window the model restyles")
-    g.add_argument("--method", choices=["window", "windows", "chain"], default="window",
-                   help="window: one 93-frame window from --start (default). Experimental: windows = the "
-                        "whole clip as overlapping windows joined on the CPU; chain = the whole clip in one "
-                        "model run, each 93-frame chunk continuing the last")
-    g.add_argument("--model-setting", help="named setting from configs/gen_prompts_windows.yaml (default: the clear one)")
+    g.add_argument("--weather", nargs="+", default=["clear"],
+                   help="clear or snow, one or more (fog and rain are not available yet)")
+    g.add_argument("--method", choices=["window", "chain"], default="window",
+                   help="window: one 93-frame window from --start (default); chain: --frames in one model run, "
+                        "each 93-frame chunk continuing from the last frame of the one before")
+    g.add_argument("--start", type=int, default=0, help="with --method window: first frame of the 93-frame window")
+    g.add_argument("--frames", help="with --method chain: START:COUNT, at least 93 frames (default the whole clip)")
+    g.add_argument("--model-setting", choices=MODEL_SETTINGS,
+                   help="K2: depth 0.5, rendered edges 0.3, segmentation 0.5; M2: K2 plus the render's colours "
+                        "(blur control 0.3, preset high), for renders made with --look enhanced; t4: depth 1.0, "
+                        "geometry edges 1.0, no segmentation (default: K2 for clear, t4 for snow)")
 
     g = ap.add_argument_group("route and reproduce")
     g.add_argument("--poses-only", action="store_true",
@@ -148,8 +156,16 @@ def apply_camera(a, cfg: dict) -> None:
 
 def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
     """(config, location, path variant) from the defaults, --config, a route file and the options."""
-    if any(w != "clear" for w in a.weather):
-        raise SystemExit("weather is not available yet")
+    for w in a.weather:
+        if w in NOT_YET:
+            raise SystemExit(f"weather {w} is not available yet")
+        if w not in WEATHERS:
+            raise SystemExit(f"--weather {w}: choose from {', '.join(WEATHERS)}")
+    model = a.realism == "model" or a.command == "generate"
+    if not model and (a.weather != ["clear"] or a.method != "window" or a.frames or a.model_setting):
+        raise SystemExit("--weather, --method, --frames and --model-setting are for the video model: add --realism model")
+    if a.frames and a.method != "chain":
+        raise SystemExit("--frames is for --method chain; --method window takes --start")
     cfg = load_config()
     if a.config:
         cfg = merge(cfg, yaml.safe_load(Path(a.config).read_text()) or {})
@@ -161,8 +177,8 @@ def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
         raise SystemExit("run takes --address, or --lat and --lon; fly a route file with: nyc-drone route FILE")
     if a.target and has_location:
         raise SystemExit("give a route or a location, not both")
-    if a.command == "reproduce" and a.method != "window":
-        raise SystemExit("reproduce compares camera poses; --method is for generate and run")
+    if a.command == "reproduce" and (a.method != "window" or a.frames):
+        raise SystemExit("reproduce compares camera poses; --method and --frames are for generate and run")
 
     if a.target:                                                   # a route file
         fixed = [o for o in ("altitude_ft", "duration_s", "speed_mps", "radius_m", "seed") if getattr(a, o) not in (None, [])]
@@ -252,8 +268,8 @@ def dry_run(a, cfg: dict, location: str, variant: str | None) -> None:
     print(f"  render     RTX GPU (L40S)     about {render_min:.0f} min for {len(alts)} altitude(s)")
     if a.realism == "model":
         what = (f"one 93-frame window from frame {a.start}" if a.method == "window"
-                else f"the whole clip, method {a.method} (experimental)")
-        print(f"  generate   80 GB GPU          video model, clear weather, {what}, per altitude")
+                else f"frames {a.frames} chained" if a.frames else "the whole clip chained")
+        print(f"  generate   80 GB GPU          video model, {' and '.join(a.weather)}, {what}, per altitude")
     print("  check      CPU only           a few minutes")
     print("nothing was run")
 
@@ -402,36 +418,51 @@ def side_by_side(out: Path, alts: list) -> None:
 
 
 def step_generate(a, cfg, location, out: Path, timings: dict) -> None:
-    """The video model on the rendered clips, in clear weather. By default one 93-frame window from
-    --start; --method windows or chain (experimental) restyle the whole clip. Runs in the model's Python."""
+    """The video model on the rendered clips, for each --weather. By default one 93-frame window from
+    --start; --method chain restyles --frames (default the whole clip) in one model run. Runs in the
+    model's Python. Each clip is copied to <altitude>/weather/ beside its spec, prompt and clip.json."""
     from .gen.common import load_gen_config, model_dir
+    from .gen.makeclip import frame_range, look_warning, prompts
     from .gen.model import model_python
     check_model()
     gcfg = load_gen_config()
+    settings = prompts()["settings"]
     py, log = model_python(gcfg), out / "work" / "generate.log"
     run_folder = out / "work" / "render" / slugify(location)
-    weather = "clear"
-    setting = a.model_setting or gcfg["generate"]["default_setting"][weather]
     for alt in cfg["altitudes_ft"]:
         bdir = run_folder / str(alt)
         if not (bdir / "bundle.json").exists():
             raise SystemExit(f"no render at {bdir}: run the render step first")
+        if a.method == "chain":
+            start, count = frame_range(a.frames, int(json.loads((bdir / "bundle.json").read_text())["clip"]["frames"]))
+            tag = f"chain_{start:04d}_{count:04d}"
+        else:
+            tag = f"window_{a.start:04d}"
         if not (bdir / "gen" / "inputs" / "inputs.json").exists():
             timings[f"controls_{alt}"] = call([py, "-m", "nyc_drone_sim.gen.controls", "--run-folder", str(run_folder),
                                                "--altitude", str(alt)], log)
-        cmd = [py, "-m", "nyc_drone_sim.gen.makeclip", "--run-folder", str(run_folder), "--altitude", str(alt),
-               "--weather", weather, "--setting", setting, "--method", a.method]
-        if a.method == "window":
-            cmd += ["--start", str(a.start)]
-        timings[f"generate_{alt}"] = call(cmd, log)
-        tag = f"window_{a.start:04d}" if a.method == "window" else a.method
-        made = sorted((d for d in model_dir(bdir, gcfg).glob(f"{weather}_{setting}_{tag}*") if ".tmp_" not in d.name),
-                      key=lambda d: d.stat().st_mtime)
-        if not made or not (made[-1] / "out.mp4").exists():
-            raise SystemExit(f"the video model left no out.mp4 at {alt} ft; see {log}")
-        (out / str(alt) / "weather").mkdir(parents=True, exist_ok=True)
-        name = f"{weather}_{tag}.mp4" if a.method == "window" else f"{weather}_{a.method}.mp4"
-        shutil.copy(made[-1] / "out.mp4", out / str(alt) / "weather" / name)
+        for weather in a.weather:
+            setting = a.model_setting or gcfg["generate"]["default_setting"][weather]
+            warn = look_warning(bdir, setting, settings[setting])
+            if warn:
+                print(f"{alt} ft: {warn}", flush=True)
+            cmd = [py, "-m", "nyc_drone_sim.gen.makeclip", "--run-folder", str(run_folder), "--altitude", str(alt),
+                   "--weather", weather, "--setting", setting, "--method", a.method]
+            cmd += ["--start", str(a.start)] if a.method == "window" else ["--frames", f"{start}:{count}"]
+            timings[f"generate_{alt}_{weather}"] = call(cmd, log)
+            made = sorted((d for d in model_dir(bdir, gcfg).glob(f"{weather}_{setting}_{tag}*") if ".tmp_" not in d.name),
+                          key=lambda d: d.stat().st_mtime)
+            if not made or not (made[-1] / "out.mp4").exists():
+                raise SystemExit(f"the video model left no out.mp4 at {alt} ft, {weather}; see {log}")
+            export_clip(made[-1], out / str(alt) / "weather", f"{weather}_{setting}_{tag}")
+
+
+def export_clip(made: Path, dest: Path, stem: str) -> None:
+    """The generated clip and what it was made from: <stem>.mp4, .spec.json, .prompt.txt, .clip.json."""
+    dest.mkdir(parents=True, exist_ok=True)
+    for src, suffix in (("out.mp4", ".mp4"), ("spec.json", ".spec.json"), ("prompt.txt", ".prompt.txt"), ("clip.json", ".clip.json")):
+        if (made / src).exists():
+            shutil.copy(made / src, dest / f"{stem}{suffix}")
 
 
 def step_check(a, cfg, location, variant, cfg_path: Path, out: Path, timings: dict) -> dict:
