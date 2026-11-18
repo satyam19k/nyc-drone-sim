@@ -9,7 +9,7 @@ import sys
 
 import numpy as np
 
-from _checks import REPO_ROOT, CheckList, IMAGES
+from _checks import CheckList, IMAGES, shown
 
 from nyc_drone_sim.common import load_config, scene_dir, slugify
 from nyc_drone_sim.paths import Pinhole
@@ -162,7 +162,7 @@ def main():
         out = IMAGES / f"populate_prototype_{slug}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
-        return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"
+        return out.stat().st_size > 10_000, f"{shown(out)} ({out.stat().st_size} bytes)"
 
     for gid, fn in [("Q1 scale", q1), ("Q2 labels", q2), ("Q3 instances", q3), ("Q6 shadows", q6), ("Q7 motion", q7),
                     ("leaf cut-out", q_tree), ("small objects", q_small), ("sheet", sheet)]:

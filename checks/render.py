@@ -10,10 +10,38 @@ import sys
 import numpy as np
 from PIL import Image
 
-from _checks import REPO_ROOT, CheckList, IMAGES
+from _checks import CheckList, IMAGES, shown
 
 from nyc_drone_sim.common import for_location, altitude_m, clip_settings, load_config, slugify, variant_suffix
 from nyc_drone_sim.postrender import MODALITIES, bundle_dir, id_to_class, probe
+
+
+COLOUR_PSNR_DB = 35.0      # render-7: colour below this is a warning, not a failure
+GEOMETRY_SHARE = 0.999     # render-7: share of pixels whose depth and class must agree
+
+
+def colour_psnr(a: np.ndarray, b: np.ndarray) -> float:
+    mse = float(((a - b) ** 2).mean())
+    return float("inf") if mse == 0 else 10 * math.log10(255 ** 2 / mse)
+
+
+def rerender_agreement(depth_a, depth_b, sem_a, classes_a: dict, sem_b, classes_b: dict) -> tuple[float, float]:
+    """Share of pixels whose depth agrees to 1% (or is empty sky in both), and share whose class
+    name agrees. Classes are compared by name: the two renders may number them differently."""
+    da, db = np.asarray(depth_a, np.float64).squeeze(), np.asarray(depth_b, np.float64).squeeze()
+    fin_a, fin_b = np.isfinite(da) & (da > 0), np.isfinite(db) & (db > 0)
+    both = fin_a & fin_b
+    close = np.zeros(da.shape, bool)
+    close[both] = np.abs(db[both] - da[both]) <= 0.01 * da[both]
+    same_depth = close | (~fin_a & ~fin_b)
+
+    def names(arr, classes):
+        arr = np.asarray(arr).squeeze()
+        ids, inv = np.unique(arr, return_inverse=True)
+        return np.array([classes.get(int(i), f"id {int(i)}") for i in ids], dtype=object)[inv].reshape(arr.shape)
+
+    same_class = names(sem_a, classes_a) == names(sem_b, classes_b)
+    return float(same_depth.mean()), float(same_class.mean())
 
 
 def main():
@@ -154,15 +182,32 @@ def main():
         return True, "; ".join(det) + ("; flagged for review" if flag else ""), flag
 
     def g57():
-        det, ok = [], True
+        # Geometry must match: depth and classes of the second frame-0 render against the clip's
+        # frame 0. Colour may differ slightly, because the real-time renderer smooths each image
+        # over the frames before it; below COLOUR_PSNR_DB it is a warning with its value.
+        det, ok, warn, saved = [], True, False, 0
+        id2c = {k: id_to_class(B[k]) for k in alts}
         for k in alts:
+            z = np.load(B[k] / "rerender_frame0.npz")
             a0 = np.asarray(Image.open(B[k] / "clip_0000" / "rgb" / "rgb_0000.png").convert("RGB"), dtype=np.float64)
-            b0 = np.load(B[k] / "rerender_frame0.npz")["rgb"][..., :3].astype(np.float64)
-            mse = float(((a0 - b0) ** 2).mean())
-            psnr = float("inf") if mse == 0 else 10 * math.log10(255 ** 2 / mse)
-            ok &= psnr >= 35
-            det.append(f"{k} ft: PSNR of second frame-0 render against the clip's frame 0 = {psnr:.2f} dB")
-        return ok, "; ".join(det)
+            psnr = colour_psnr(a0, z["rgb"][..., :3].astype(np.float64))
+            warn |= psnr < COLOUR_PSNR_DB
+            colour = f"colour PSNR {psnr:.2f} dB" + (f" (below {COLOUR_PSNR_DB} dB: warning)" if psnr < COLOUR_PSNR_DB else "")
+            if "depth" not in z.files or "semantic" not in z.files:
+                det.append(f"{k} ft: {colour}; depth and classes were not saved by this render")
+                continue
+            saved += 1
+            labels = {int(i): (v.get("class") if isinstance(v, dict) else str(v))
+                      for i, v in json.loads(str(z["labels"])).items()}
+            d_share, c_share = rerender_agreement(np.load(B[k] / "metric_depth" / "depth_0000.npy"), z["depth"],
+                                                  sem(k, 0), id2c[k], z["semantic"], labels)
+            good = d_share >= GEOMETRY_SHARE and c_share >= GEOMETRY_SHARE
+            ok &= good
+            det.append(f"{k} ft: depth within 1% on {d_share:.3%} of pixels, same class on {c_share:.3%} "
+                       f"(at least {GEOMETRY_SHARE:.1%} needed); {colour}")
+        if saved == 0:
+            return None, "; ".join(det)
+        return ok, "; ".join(det), warn
 
     def g59():
         # The depth picture must use the grey range its scene offers. That range depends on the
@@ -248,7 +293,7 @@ def main():
             fig.savefig(out, bbox_inches="tight")
             plt.close(fig)
             ok &= out.stat().st_size > 10_000
-            det.append(f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)")
+            det.append(f"{shown(out)} ({out.stat().st_size} bytes)")
         return ok, "; ".join(det)
 
     for gid, fn in [("render-1", g51), ("render-2", g52), ("render-3", g53), ("render-4", g54), ("render-5", g55),

@@ -15,6 +15,13 @@ VALIDATION = Path(os.environ.get("NYC_DRONE_VALIDATION_DIR") or REPO_ROOT / "doc
 IMAGES, REPORTS = VALIDATION / "images", VALIDATION / "reports"
 
 
+def shown(p: Path) -> str:
+    """A path for a report: relative to the repository when inside it, else as it is (a run's
+    own folder given with --out can be anywhere)."""
+    p = Path(p)
+    return str(p.relative_to(REPO_ROOT)) if p.is_relative_to(REPO_ROOT) else str(p)
+
+
 class CheckList:
     def __init__(self, name: str, location: str, variant: str | None = None, run: str | None = None):
         self.name, self.location, self.variant, self.run_id = name, location, variant, run

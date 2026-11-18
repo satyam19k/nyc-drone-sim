@@ -435,7 +435,8 @@ def step_generate(a, cfg, location, out: Path, timings: dict) -> None:
 
 
 def step_check(a, cfg, location, variant, cfg_path: Path, out: Path, timings: dict) -> dict:
-    """Run the project's checks on this run. A failing check is reported, it does not stop the run."""
+    """Run the project's checks on this run. A failing check does not stop the other checks; the
+    command then exits 1 (see exit_code)."""
     log = out / "work" / "check.log"
     v = ["--variant", variant] if variant else []
     rendered = (out / "work" / "render" / slugify(location)).exists()
@@ -518,8 +519,15 @@ def main(argv=None) -> None:
     finally:
         write_report(cfg, location, out, timings, checks, poses)
     print(f"done: {out}")
-    if poses is not None and not poses["matches"]:
-        sys.exit(1)
+    sys.exit(exit_code(checks, poses))
+
+
+def exit_code(checks: dict | None, poses: dict | None) -> int:
+    """1 when a check failed or the poses do not match the saved ones; warnings do not count."""
+    failed = [name for name, result in (checks or {}).items() if result != "passed"]
+    if failed:
+        print(f"checks failed: {', '.join(failed)}", flush=True)
+    return 1 if failed or (poses is not None and not poses["matches"]) else 0
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ import shapely
 from pxr import Usd, UsdGeom, UsdSemantics, UsdValidation
 from shapely.geometry import shape
 
-from _checks import REPO_ROOT, CheckList, IMAGES
+from _checks import CheckList, IMAGES, shown
 
 from nyc_drone_sim.common import for_location, load_config, scene_dir, slugify
 
@@ -214,7 +214,7 @@ def main():
         out = IMAGES / f"scene_{slug}.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
-        return out.stat().st_size > 10_000, f"{out.relative_to(REPO_ROOT)} ({out.stat().st_size} bytes)"
+        return out.stat().st_size > 10_000, f"{shown(out)} ({out.stat().st_size} bytes)"
 
     for gid, fn in [("scene-1", g21), ("scene-2", g22), ("scene-3", g23), ("scene-4", g24), ("scene-5", g25),
                     ("scene-6", g26), ("scene-7", g27), ("scene-8", g28), ("scene-9", g29)]:
