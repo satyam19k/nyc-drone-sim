@@ -7,6 +7,9 @@ water_share_min: 0.01        # a window "shows water" when at least this share o
 
 settings:
   K2: {guidance: 3, weights: [0.5, 0.3, 0.5], edge: rendered}     # depth / edge / segmentation
+  # K2 plus the model's blur control at 0.3, made by the model from the input video (the render's
+  # own rgb.mp4), so the render's colours guide the result: meant for renders with --look enhanced
+  M2: {guidance: 3, weights: [0.5, 0.3, 0.5], edge: rendered, vis: {weight: 0.3, blur: high}}
   t4: {guidance: 3, weights: [1.0, 1.0, null], edge: geometry}    # depth and edge, no segmentation
   w53: {guidance: 3, weights: [0.5, 0.3, null], edge: geometry}   # fog and rain: depth 0.5, edge 0.3, no segmentation
 

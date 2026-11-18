@@ -1,14 +1,17 @@
 """Generate a clip with the video model. Needs an 80 GB GPU.
 
   python -m nyc_drone_sim.gen.makeclip --run-folder runs/run_009/canal-shore-street --altitude 150 \
-      --weather clear --setting K2 --method window|windows|pieces|chain [--start 0]
+      --weather clear --setting K2 --method window|chain|windows|pieces [--start 0] [--frames 0:768]
 
 window   One 93-frame window from --start, the model's own clip length: the default of the
-         generate step. The methods below restyle a whole clip and are experimental.
+         generate step.
+chain    One run of the model over --frames START:COUNT (default the whole clip). The model works
+         in 93-frame chunks and starts each chunk from the last frame of the one before
+         (num_conditional_frames 1), so a fault in one chunk carries into the next. One prompt for
+         the chain, built from the classes in view over those frames (nyc_drone_sim.gen.prompt).
+         The spec, prompt.txt and clip.json are kept beside out.mp4.
 
-chain    One run of the model over the whole clip. The model works in 93-frame chunks and starts
-         each chunk from the last frame of the one before, so a fault in one chunk carries into
-         the next.
+The two methods below are experimental.
 windows  Overlapping 93-frame windows, each generated alone from its own controls and its own
          prompt, with no frame taken from another window. The windows are then joined on the CPU:
          once with a linear cross-fade over each overlap (out.mp4, out_crossfade.mp4) and once with
@@ -32,7 +35,7 @@ import numpy as np
 import yaml
 
 from .model import run_batch, run_clip
-from .common import REPO_ROOT, bundle_dir, bundle_hash, inputs_dir, load_gen_config, model_dir, scene_name, video_info, write_video
+from .common import REPO_ROOT, bundle_dir, bundle_hash, load_gen_config, model_dir, scene_name, video_info, write_video
 
 WINDOW, OVERLAP = 93, 16
 MATCH_THRESHOLD = 5.0          # grey levels: larger colour differences in an overlap are matched
@@ -96,7 +99,22 @@ def base_spec(setting: dict, cfg: dict, name: str, prompt: str, video: Path, dep
         spec["edge"] = {"control_path": str(edge), "control_weight": float(e)}
     if s is not None:
         spec["seg"] = {"control_path": str(seg), "control_weight": float(s)}
+    if setting.get("vis"):
+        # no control_path: the model blurs the input video itself, so its colours guide the result
+        spec["vis"] = {"control_weight": float(setting["vis"]["weight"]), "preset_blur_strength": str(setting["vis"]["blur"])}
     return spec
+
+
+def look_warning(bdir: Path, setting_name: str, setting: dict) -> str | None:
+    """A setting with the blur control copies the render's colours; say so when the render used the
+    standard look."""
+    if not setting.get("vis"):
+        return None
+    look = (json.loads((bdir / "bundle.json").read_text()).get("appearance") or {}).get("look", "standard")
+    if look == "enhanced":
+        return None
+    return (f"warning: setting {setting_name} takes its colours from the render, which used the {look} look; "
+            "it is meant for renders made with --look enhanced")
 
 
 def read_video(path: Path) -> np.ndarray:
@@ -116,7 +134,7 @@ def chunk_brightness(video: np.ndarray, bounds: list[int]) -> list[float]:
     return [float(video[a:b:4].mean()) for a, b in zip(bounds[:-1], bounds[1:])]
 
 
-def sheet(bdir: Path, video: np.ndarray, title: str, out_png: Path) -> None:
+def sheet(bdir: Path, video: np.ndarray, title: str, out_png: Path, start: int = 0) -> None:
     import cv2
     n = len(video)
     idx = [int(round(v)) for v in np.linspace(0, n - 1, 8)]
@@ -129,7 +147,7 @@ def sheet(bdir: Path, video: np.ndarray, title: str, out_png: Path) -> None:
         return im
     rows = []
     for part in (idx[:4], idx[4:]):
-        rows.append(np.hstack([lab(sim[i], f"simulator {i} ({i / 16:.0f} s)") for i in part]))
+        rows.append(np.hstack([lab(sim[start + i], f"simulator {start + i} ({(start + i) / 16:.0f} s)") for i in part]))
         rows.append(np.hstack([lab(video[i], f"{title} {i}") for i in part]))
     out_png.parent.mkdir(exist_ok=True)
     cv2.imwrite(str(out_png), np.vstack(rows))
@@ -304,6 +322,10 @@ def run_window(bdir: Path, weather: str, setting_name: str, cfg: dict, start: in
     work.mkdir(parents=True)
     spec = base_spec(setting, cfg, "out", prompt, w / "rgb.mp4", w / "depth_control.mp4", w / edge_file, w / "segmentation.mp4")
     (work / "spec.json").write_text(json.dumps(spec, indent=1) + "\n")
+    (work / "prompt.txt").write_text(prompt + "\n")
+    warn = look_warning(bdir, setting_name, setting)
+    if warn:
+        print(warn, flush=True)
     t0 = time.time()
     rc = run_batch([work / "spec.json"], work, cfg, log=work / "run.log")
     if rc != 0 or not (work / "out.mp4").exists():
@@ -313,7 +335,7 @@ def run_window(bdir: Path, weather: str, setting_name: str, cfg: dict, start: in
     (work / "clip.json").write_text(json.dumps({
         "method": "window", "start": start, "frames": WINDOW, "scene": scene_name(bdir), "altitude_ft": int(bdir.name),
         "weather": weather, "setting": setting_name, "setting_values": setting, "seed": int(cfg["sampling"]["seed"]),
-        "prompt": prompt, "water_in_frame": wet, "seconds": round(time.time() - t0, 1),
+        "prompt": prompt, "water_in_frame": wet, "look_warning": warn, "seconds": round(time.time() - t0, 1),
         "model_commit": cfg["model"]["commit"], "bundle_sha256": bundle_hash(bdir)}, indent=1) + "\n")
     work.rename(final)
     summarise([f"## {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, frames {start} to {start + WINDOW - 1}",
@@ -321,41 +343,86 @@ def run_window(bdir: Path, weather: str, setting_name: str, cfg: dict, start: in
     return 0
 
 
-def run_chain(bdir: Path, weather: str, setting_name: str, cfg: dict, cond: int = 1) -> int:
+CHAIN_COND = 1         # frames of the previous chunk each chunk of a chain starts from
+
+
+def frame_range(frames: str | None, n: int, min_frames: int = WINDOW) -> tuple[int, int]:
+    """(start, count) from START:COUNT, or the whole clip when not given."""
+    if not frames:
+        start, count = 0, n
+    else:
+        try:
+            start, count = (int(v) for v in frames.split(":"))
+        except ValueError:
+            raise SystemExit(f"--frames {frames}: give START:COUNT, e.g. 0:768") from None
+    if start < 0 or count < min_frames or start + count > n:
+        raise SystemExit(f"--frames {start}:{count}: at least {min_frames} frames, inside the clip's {n} frames (0 to {n - 1})")
+    return start, count
+
+
+def chain_spec(bdir: Path, weather: str, setting_name: str, cfg: dict, start: int, count: int) -> tuple[dict, dict]:
+    """The model's spec for frames start .. start + count - 1 in one chained run, and what it was
+    made from. The controls are cut from the bundle's own frames for that range."""
+    from .prompt import class_config, class_prompt, class_shares
     p = prompts()
     setting = p["settings"][setting_name]
+    name = f"chain_{start:04d}_{count:04d}"
+    w = bdir / "gen" / "windows" / name
+    if not (w / "window.json").exists():
+        from .windows import cut_window
+        cut_window(bdir, name, start, count, cfg)
+    shares = class_shares(bdir, start, count)
+    prompt, groups = class_prompt(shares, weather, class_config(), p)
+    edge_file = "edges_rendered.mp4" if setting["edge"] == "rendered" else "edges_geometry.mp4"
+    spec = base_spec(setting, cfg, "out", prompt, w / "rgb.mp4", w / "depth_control.mp4", w / edge_file, w / "segmentation.mp4")
+    spec["num_conditional_frames"] = CHAIN_COND
+    info = {"method": "chain", "start": start, "frames": count, "scene": scene_name(bdir), "altitude_ft": int(bdir.name),
+            "weather": weather, "setting": setting_name, "setting_values": setting, "seed": int(cfg["sampling"]["seed"]),
+            "num_conditional_frames": CHAIN_COND, "prompt": prompt, "described": groups,
+            "shares_percent": {k: round(100 * v, 1) for k, v in shares.items() if v >= 0.005},
+            "look_warning": look_warning(bdir, setting_name, setting),
+            "model_commit": cfg["model"]["commit"], "bundle_sha256": bundle_hash(bdir)}
+    return spec, info
+
+
+def run_chain(bdir: Path, weather: str, setting_name: str, cfg: dict, frames: str | None = None) -> int:
+    """One run of the model over frames START:COUNT (default the whole clip), in its own 93-frame
+    chunks, each starting from the last frame of the one before; one prompt for the chain, built
+    from what is in view over those frames. The spec, the prompt and clip.json are kept beside
+    out.mp4, so the clip can be made again exactly."""
     n = video_info(bdir / "clip_0000" / "rgb.mp4")["frames"]
-    legs = scene_legs(bdir, p)
-    wet = water_share(bdir, 0, n) >= float(p["water_share_min"])
-    key = "with_water" if wet else "without_water"
-    # one prompt for the whole clip: every leg's text, then the weather
-    prompt = " ".join(" ".join(l[key].split()) for l in legs) + " " + " ".join(p["weather"][weather][key].split())
-    clip, inp = bdir / "clip_0000", inputs_dir(bdir)
-    edge = clip / "edges.mp4" if setting["edge"] == "rendered" else inp / "edges_geometry.mp4"
-    spec = base_spec(setting, cfg, "out", prompt, clip / "rgb.mp4", inp / "depth_control.mp4", edge, clip / "segmentation.mp4")
-    spec["num_conditional_frames"] = int(cond)      # frames of the previous chunk each chunk starts from
-    tag = "chain" if cond == 1 else f"chain_cond{cond}"
+    start, count = frame_range(frames, n)
+    spec, info = chain_spec(bdir, weather, setting_name, cfg, start, count)
+    if info["look_warning"]:
+        print(info["look_warning"], flush=True)
+    tag = f"chain_{start:04d}_{count:04d}"
     sdir = model_dir(bdir, cfg) / "full_specs"
     sdir.mkdir(parents=True, exist_ok=True)
     spath = sdir / f"{weather}_{setting_name}_{tag}.json"
     spath.write_text(json.dumps(spec, indent=1) + "\n")
-    final = model_dir(bdir, cfg) / f"{weather}_{setting_name}_{tag}"
-    out = run_clip(spath, final, cfg)
+    out = run_clip(spath, model_dir(bdir, cfg) / f"{weather}_{setting_name}_{tag}", cfg)
     if out is None:
-        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, chained"])
+        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, chained, frames {start}:{count}"])
         return 1
-    video = read_video(out / "out.mp4")
-    bounds = [0] + list(range(WINDOW, n, WINDOW - cond)) + [n]
-    bright = chunk_brightness(video, bounds)
-    subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "gen_seam_check.py"), "--clip", str(out), "--overlap", str(cond)])
-    seams = json.loads((out / "seams.json").read_text()) if (out / "seams.json").exists() else {}
-    png = REPO_ROOT / "docs" / "validation" / "images" / f"gen_full_{scene_name(bdir)}_{bdir.name}_{weather}_{setting_name}_{tag}.png"
-    sheet(bdir, video, f"{weather} {setting_name} chained", png)
-    change = (bright[-1] - bright[0]) / bright[0]
-    summarise([f"## {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, chained with {cond} conditioning frame(s) ({len(bounds) - 1} chunks, {n} frames)",
-               f"- video: `{out / 'out.mp4'}`", f"- sheet: `{png}`",
-               f"- brightness first chunk {bright[0]:.0f}, last {bright[-1]:.0f} ({change:+.0%}); joins flagged: {seams.get('flagged_joins', 'not checked')}"])
+    (out / "clip.json").write_text(json.dumps(info, indent=1) + "\n")
+    describe_chain(bdir, out, info)
     return 0
+
+
+def describe_chain(bdir: Path, out: Path, info: dict) -> None:
+    """Brightness per chunk, the join check and an 8-frame sheet beside the clip; a log entry."""
+    start, n = info["start"], info["frames"]
+    video = read_video(out / "out.mp4")
+    bounds = [0] + list(range(WINDOW, n, WINDOW - CHAIN_COND)) + [n]
+    bright = chunk_brightness(video, bounds)
+    subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "gen_seam_check.py"), "--clip", str(out), "--overlap", str(CHAIN_COND)])
+    seams = json.loads((out / "seams.json").read_text()) if (out / "seams.json").exists() else {}
+    sheet(bdir, video, f"{info['weather']} {info['setting']} chained", out / "sheet.png", start=start)
+    change = (bright[-1] - bright[0]) / bright[0]
+    summarise([f"## {info['scene']} {bdir.name} ft, {info['weather']}, {info['setting']}, chained, frames {start} to {start + n - 1} ({len(bounds) - 1} chunks)",
+               f"- video: `{out / 'out.mp4'}`", f"- sheet: `{out / 'sheet.png'}`",
+               f"- brightness first chunk {bright[0]:.0f}, last {bright[-1]:.0f} ({change:+.0%}); joins flagged: {seams.get('flagged_joins', 'not checked')}"]
+              + ([f"- {info['look_warning']}"] if info["look_warning"] else []))
 
 
 def main() -> int:
@@ -368,7 +435,7 @@ def main() -> int:
                     help="window: one 93-frame window from --start; the others (whole clip) are experimental")
     ap.add_argument("--start", type=int, default=0, help="with --method window: its first frame")
     ap.add_argument("--piece-frames", type=int, default=185, help="with --method pieces: frames per independent piece")
-    ap.add_argument("--cond-frames", type=int, default=1, choices=[1, 2], help="with --method chain: frames of the previous chunk each chunk starts from")
+    ap.add_argument("--frames", default=None, help="with --method chain: START:COUNT (default the whole clip)")
     ap.add_argument("--config", default=None)
     a = ap.parse_args()
     cfg = load_gen_config(a.config)
@@ -381,7 +448,7 @@ def main() -> int:
         return run_windows(b, a.weather, a.setting, cfg)
     if method == "pieces":
         return run_windows(b, a.weather, a.setting, cfg, piece=a.piece_frames)
-    return run_chain(b, a.weather, a.setting, cfg, cond=a.cond_frames)
+    return run_chain(b, a.weather, a.setting, cfg, frames=a.frames)
 
 
 if __name__ == "__main__":
