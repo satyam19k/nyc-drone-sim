@@ -1,7 +1,7 @@
 # Reproduce the results
 
-Every command that made the v1.0 videos and the snow window, in the order it ran, with its output, wall time and
-peak GPU memory.
+Every command that made the v1.0 videos and the snow window, in the order it ran, with its
+output, wall time and peak GPU memory.
 
 - Code: this repository at commit `674cc7e`.
 - GPU: one NVIDIA RTX PRO 6000 Blackwell Server Edition (96 GB), driver 595.112.07. The renders

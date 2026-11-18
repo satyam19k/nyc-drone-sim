@@ -73,6 +73,21 @@ GPU. No clip has a black or frozen stretch. Seam numbers per chain are in
   surfaces look more natural than in the render.
 - At 150 ft and 500 ft the same flight gives two consistent clips.
 
+## What the model adds and loses
+
+![Canal Street at 150 ft, 2 s in: simulator (top), generated (bottom)](../media/canal_150ft_crop.jpg)
+
+![Bronx at 150 ft, 4 s in: simulator (top), generated (bottom)](../media/bronx_150ft_crop.jpg)
+
+Crops at full resolution, simulator on top, generated below.
+
+- **Kept from the simulator:** geometry, motion and layout. Every path, kerb, crossing stripe,
+  tree, lawn edge and person is where the render put it.
+- **Added:** surface texture where the render has flat colour (slab joints on the Canal Street
+  plaza, paving on the Bronx paths), softer light and shadows, more natural foliage.
+- **Lost:** pedestrians smear into small blobs; a thin yellow signal in the Bronx crop becomes a
+  grey shape; at 500 ft facades go blank (below).
+
 ## What still looks wrong
 
 - **Facades.** Large buildings lose detail. At 500 ft (Grand Army Plaza and Canal Street) the
@@ -82,8 +97,9 @@ GPU. No clip has a black or frozen stretch. Seam numbers per chain are in
 - **The fog step.** In the fog clip the second chunk starts about 4.5% brighter, so the fog
   thickens in one step at 5.8 s; the seam check flags that join. The rest of the clip is
   continuous.
-- **No snow.** The class sentences of the prompt describe green trees and dry paving, which
-  override the snow paragraph (see 03).
+- **Snow is not in the built-in prompt.** Its scene sentences describe green trees and dry
+  paving and override the snow paragraph. A snow version of every scene sentence gives snow on
+  one 93-frame window (see 03); it is not yet in the code.
 
 ## Conclusion
 
@@ -91,6 +107,6 @@ GPU. No clip has a black or frozen stretch. Seam numbers per chain are in
   colours; without it the model invents them.
 - **Chains for continuity:** with M2 and class-based prompts, three-chunk chains have no
   visible join in clear weather and fit in about 71 GB.
-- **Next:** weather-specific class sentences for snow; a way to keep facade detail at 500 ft
+- **Next:** weather-specific scene and class sentences for snow; a way to keep facade detail at 500 ft
   (a stronger edge weight on buildings, or a higher resolution); matching brightness between
   chunks of a fog chain.

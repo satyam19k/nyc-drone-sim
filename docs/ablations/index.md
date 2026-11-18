@@ -24,7 +24,8 @@ are kept in `measurements.json`; the JPEG sheets in `img/` are downscaled from t
 | Simulator checks | Are geometry and altitude right? | Yes, to 0.044% and 0.0000 m | [06](06_validation.md) |
 | Scores on generated video | Can a number choose the setting? | No: structure gives a blank clip infinity; ripple, white ground and brightness drift each reward a failure | [06](06_validation.md) |
 | Fog with a fog guide | Can the model make fog? | Yes, with the renderer's fog render as the colour guide (0.3) and the fog prompt | [03](03_weather_model.md#since-then-the-final-run) |
-| Snow, cause found | Why does snow not appear? | The class sentences of the prompt describe green trees and dry paving, and override the snow paragraph | [03](03_weather_model.md#since-then-the-final-run) |
+| Snow, cause found | Why does snow not appear? | The scene sentences of the prompt (scene text for a window, class sentences for a chain) describe green trees and dry paving, and override the snow paragraph | [03](03_weather_model.md#since-then-the-final-run) |
+| Snow, prompt fix S1 and S2 | Does a snow version of every scene sentence give snow? | Yes, on one 93-frame window with t4: snow on paving, roofs and trees, footprints, a dark river; guidance 6 adds contrast. Not yet in the code | [03](03_weather_model.md#since-then-the-final-run) |
 | Chained M2 | Are M2 chains continuous, and do they fit in memory? | Yes: no flagged join in six clear chains; three-chunk chains peak at 70.6 to 71.2 GB | [04](04_long_clips.md#result-in-the-final-run) |
 | M0, M1, M2 | Which input and colour control for the final clips? | M2 (enhanced render, colour control 0.3): keeps the render's lawns and colours; M0 and M1 bleach the park and repaint cars | [08](08_final_run.md) |
 | Final run | Five clips at three places, two altitudes, clear and fog | All made; facades lose detail at 500 ft; the fog clip thickens in one step at 5.8 s | [08](08_final_run.md) |

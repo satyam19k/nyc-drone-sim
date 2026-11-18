@@ -108,10 +108,29 @@ about 4.5% brighter (mean colour 208.7 / 205.3 / 203.4 in chunk 1, 218.2 / 215.4
 chunk 2), so the fog thickens in one step at 5.8 s; the seam check flags that join (change 2.18,
 limit 1.93). The guide must have the same frame count and camera poses as the render it guides.
 
-**The cause of the snow failure is found.** A chain's prompt is built from the classes in view:
-each class group adds a fixed sentence from `configs/gen_prompts_classes.yaml`, then the weather
-paragraph follows. Those sentences describe "flat, clean and dry" sidewalks and plazas, "green
-lawns" and "leafy green tree canopies" in every weather, and they outweigh the snow paragraph
-that comes after them. This matches the observation above that snow appeared only when the scene
-description itself said snow on each surface. The fix, class sentences written per weather, is
-not implemented, so the v1.0 results have no snow. Rain is not available.
+**The cause of the snow failure is found.** The weather paragraph comes after scene sentences
+that are the same in every weather. For a window they are the place's scene text in
+`configs/gen_prompts_windows.yaml`; on the Canal Street shoreline they include "paved with large
+pale grey stone and concrete slabs, flat, clean and dry" and "a row of leafy green street
+trees". For a chain they are the class sentences of `configs/gen_prompts_classes.yaml` ("flat,
+clean and dry" sidewalks, "green lawns", "leafy green tree canopies"). They outweigh the snow
+paragraph. Quick test step 7 (setting t4, the built-in prompt, route frames 114 to 206 at
+150 ft) shows it again: grey slab paving, green trees and a dark green river, no snow cover.
+
+**The fixed prompt gives snow.** Step 7's spec with only the prompt replaced by a snow version
+of every scene sentence ([`docs/snow_prompt.txt`](../snow_prompt.txt): bare snowy trees,
+snow-covered paving with footprints, snow on roofs and cars, pedestrians in winter coats, a dark
+river with ice floes, then the snow paragraph), same seed, 35 steps and t4 controls (depth 1.0,
+geometry edges 1.0, no segmentation), on the same 93-frame window:
+
+![Route frame 162: simulator, built-in snow prompt, fixed snow prompt](../media/snow_prompt_fix.jpg)
+
+- Snow covers the paving, plazas, kerbs and roofs; the trees are dusted white; footprint trails
+  cross the plaza; the river is dark. The roads come out white rather than the dark wet asphalt
+  the prompt asks for, and the granite strips beside the plaza stay brown.
+- **Guidance 3 (S1) against 6 (S2):** the same scene. Guidance 6 gives more contrast: deeper,
+  sharper footprints and a darker, bluer river. Each run took 14 min, peak 62.9 GB.
+
+This is a verified prompt fix on one window, not yet a code path: `--weather snow` still builds
+the old prompt. The next step is scene and class sentences written per weather. The commands are
+in [reproduce_results.md](../reproduce_results.md#snow-window). Rain is not available.

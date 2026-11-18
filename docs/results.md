@@ -1,7 +1,7 @@
 # Results, v1.0
 
-Five videos made with commit `674cc7e`, all 1280 x 720 at 16 fps, restyled by Cosmos-Transfer2.5-2B
-from Isaac Sim renders. Every file below is an asset of the
+Five videos and a snow window made with commit `674cc7e`, all 1280 x 720 at 16 fps, restyled by
+Cosmos-Transfer2.5-2B from Isaac Sim renders. Every file below is an asset of the
 [v1.0 release](https://github.com/satyam19k/nyc-drone-sim/releases/tag/v1.0). The commands that
 made them are in [reproduce_results.md](reproduce_results.md).
 
@@ -27,6 +27,19 @@ Foliage and road surfaces look natural; cars, crossings and the facade follow th
 Grand Army Plaza, Brooklyn, at 500 ft, 15 s. The plaza's oval, the roads and the park canopy match
 the render; the tall white tower and the curved glass building lose their windows.
 
+## The snow window
+
+**[canal-shore-street_150ft_snow_S1_5.8s.mp4](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_snow_S1_5.8s.mp4)**:
+the shoreline at 150 ft in snow, one 93-frame window (5.8 s, route frames 114 to 206), setting t4
+with the fixed snow prompt ([snow_prompt.txt](snow_prompt.txt)) at guidance 3. Snow covers the
+paving, roofs and trees, footprint trails cross the plaza and the river is dark; the roads come
+out white rather than wet and dark. This is a verified prompt fix, not yet the repository's
+built-in snow prompt.
+
+**[canal-shore-street_150ft_snow_S2_5.8s.mp4](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_snow_S2_5.8s.mp4)**:
+the same window at guidance 6: the same scene with more contrast, deeper footprints and a
+darker river.
+
 ## Simulator clips and side-by-sides
 
 For each video the release has the simulator render of exactly the same frames (`<name>_sim.mp4`:
@@ -36,6 +49,7 @@ the enhanced render, or for the fog clip the renderer's fog render) and a side-b
 | Video | Simulator | Side-by-side |
 | --- | --- | --- |
 | Canal Street 150 ft | [sim](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_clear_M2_30s_sim.mp4) | [side-by-side](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_clear_M2_30s_sim_vs_gen.mp4) |
+| Snow window (S1) | [sim](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_snow_5.8s_sim.mp4) | [side-by-side](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_snow_S1_5.8s_sim_vs_gen.mp4) |
 | Canal Street 500 ft | [sim](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_500ft_clear_M2_30s_sim.mp4) | [side-by-side](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_500ft_clear_M2_30s_sim_vs_gen.mp4) |
 | Canal Street fog | [sim](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_fog_fogguide_15s_sim.mp4) | [side-by-side](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_fog_fogguide_15s_sim_vs_gen.mp4) |
 | Bronx 150 ft | [sim](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/bronx-1-east-161st-street_150ft_clear_M2_15s_sim.mp4) | [side-by-side](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/bronx-1-east-161st-street_150ft_clear_M2_15s_sim_vs_gen.mp4) |
