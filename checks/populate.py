@@ -21,7 +21,7 @@ from _checks import REPO_ROOT, CheckList
 from nyc_drone_sim.assets import load_manifest
 from nyc_drone_sim.common import for_location, load_config, scene_dir, slugify
 from nyc_drone_sim.populate import rects, run_populate
-from nyc_drone_sim.postrender import bundle_dir, id_to_class
+from nyc_drone_sim.postrender import bundle_dir, id_to_class, path_frames
 
 NEW_OBJECT_CLASSES = ("vehicle", "person", "vegetation", "furniture")
 
@@ -295,10 +295,12 @@ def main():
             path = json.loads((B / "path.json").read_text())
             intr = path["intrinsics"]
             ids = {c: i for i, c in id_to_class(B).items()}
-            n = len(path["frames"])
+            frames = path_frames(B)                 # frame i of a window render is path frame START + i
+            n = len(frames)
             expect, seen, hits, vis = {}, {}, {}, {}
             for i in sorted(set(np.linspace(0, n - 1, 8).round().astype(int).tolist())):
-                c2w = np.array(path["frames"][i]["camera_to_world"])
+                c2w = np.array(frames[i]["camera_to_world"])
+                t = frames[i]["index"]                  # recorded motion is indexed by path frame
                 sem = np.load(B / "semantic" / f"semantic_{i:04d}.npz")["data"]
                 depth = np.load(B / "metric_depth" / f"depth_{i:04d}.npy")
                 for cls in NEW_OBJECT_CLASSES:
@@ -306,7 +308,7 @@ def main():
                     if not os_:
                         continue
                     hgt = np.array([man[o["asset"]]["size_m"][2] * o["scale"] for o in os_])
-                    xy = np.array([poses[o["id"]][i, :2] if o["id"] in poses else (o["x"], o["y"]) for o in os_])
+                    xy = np.array([poses[o["id"]][t, :2] if o["id"] in poses else (o["x"], o["y"]) for o in os_])
                     px, py, z = project(c2w, intr, np.column_stack([xy, hgt * 0.75]))
                     inside = (z > 0) & (px >= 8) & (px < intr["width"] - 8) & (py >= 8) & (py < intr["height"] - 8)
                     for j in np.nonzero(inside)[0]:
@@ -334,10 +336,11 @@ def main():
     def frame_view(B, i):
         """Camera matrix, semantic ids, class-of-id map and vehicle positions for frame i of a clip."""
         b = json.loads((B / "bundle.json").read_text())
-        c2w = np.array(json.loads((B / "path.json").read_text())["frames"][i]["camera_to_world"])
+        fr = path_frames(B)[i]                      # frame i of a window render is path frame START + i
+        c2w = np.array(fr["camera_to_world"])
         ids = id_to_class(B)
         sem = np.load(B / "semantic" / f"semantic_{i:04d}.npz")["data"]
-        xy = np.array([poses[o["id"]][i][:2] if o["id"] in poses else (o["x"], o["y"]) for o in veh])
+        xy = np.array([poses[o["id"]][fr["index"]][:2] if o["id"] in poses else (o["x"], o["y"]) for o in veh])
         return c2w, sem, ids, xy
 
     def p8_clip():
