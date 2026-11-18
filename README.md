@@ -2,21 +2,21 @@
 
 A digital twin of any New York City location, built from the city's open data and flown as a drone
 in NVIDIA Isaac Sim at any altitude. A video model, Cosmos-Transfer2.5, then restyles the render
-into realistic video. Fog comes from the simulator: a fog render guides the model's colours.
+into realistic video, in clear weather, fog and snow.
 
 ## Results
 
-Simulator render on the left, generated video on the right (GIFs are cut and scaled down; the
-full videos are in the [v1.0 release](https://github.com/satyam19k/nyc-drone-sim/releases/tag/v1.0)).
+GIFs are cut and scaled down; the full videos are in the
+[v1.0 release](https://github.com/satyam19k/nyc-drone-sim/releases/tag/v1.0).
 
 | | |
 | --- | --- |
 | ![Canal Street, 150 ft](docs/media/canal_150ft_sim_vs_gen.gif) | ![Canal Street, 150 ft and 500 ft](docs/media/canal_150_vs_500ft_gen.gif) |
-| Canal Street at 150 ft, through the turn from the river onto Canal Street | Generated Canal Street at 150 ft (left) and 500 ft (right), same flight |
-| ![Canal Street in fog](docs/media/canal_150ft_fog_sim_vs_gen.gif) | ![Bronx, 150 ft](docs/media/bronx_150ft_sim_vs_gen.gif) |
-| Hudson River Park in fog at 150 ft: the simulator's fog render guides the colours | 1 East 161st Street, Bronx, at 150 ft |
-| ![Grand Army Plaza, 500 ft](docs/media/grand_army_plaza_500ft_sim_vs_gen.gif) | |
-| Grand Army Plaza, Brooklyn, at 500 ft | |
+| Hudson River Park at 150 ft, along the shoreline into the turn: simulator (left), generated (right) | Canal Street route: generated at 150 ft (left) and 500 ft (right), same flight |
+| ![Canal Street in fog](docs/media/canal_150ft_fog_sim_vs_gen.gif) | ![Canal Street in snow](docs/media/canal_150ft_snow_sim_vs_gen.gif) |
+| Fog at 150 ft, guided by the simulator's fog render: simulator (left), generated (right) | Snow at 150 ft, one 93-frame window with the fixed snow prompt: simulator (left), generated (right) |
+| ![Bronx, 150 ft](docs/media/bronx_150ft_sim_vs_gen.gif) | ![Grand Army Plaza, 500 ft](docs/media/grand_army_plaza_500ft_sim_vs_gen.gif) |
+| 1 East 161st Street, Bronx, at 150 ft: simulator (left), generated (right) | Grand Army Plaza, Brooklyn, at 500 ft: simulator (left), generated (right) |
 
 | Video | Place | Altitude | Weather | Length |
 | --- | --- | --- | --- | --- |
@@ -25,18 +25,43 @@ full videos are in the [v1.0 release](https://github.com/satyam19k/nyc-drone-sim
 | [canal-shore-street_150ft_fog_fogguide_15s.mp4](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_fog_fogguide_15s.mp4) | Hudson River Park | 150 ft | fog | 15 s |
 | [bronx-1-east-161st-street_150ft_clear_M2_15s.mp4](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/bronx-1-east-161st-street_150ft_clear_M2_15s.mp4) | 1 East 161st Street, Bronx | 150 ft | clear | 15 s |
 | [grand-army-plaza-brooklyn_500ft_clear_M2_15s.mp4](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/grand-army-plaza-brooklyn_500ft_clear_M2_15s.mp4) | Grand Army Plaza, Brooklyn | 500 ft | clear | 15 s |
+| [canal-shore-street_150ft_snow_S1_5.8s.mp4](https://github.com/satyam19k/nyc-drone-sim/releases/download/v1.0/canal-shore-street_150ft_snow_S1_5.8s.mp4) | Hudson River Park | 150 ft | snow (prompt fix, one 93-frame window) | 5.8 s |
 
 All are 1280 x 720 at 16 fps. The release also holds the simulator clip of each video
 (`<name>_sim.mp4`), a side-by-side of each (`<name>_sim_vs_gen.mp4`), the 150 ft and 500 ft
-Canal Street clips side by side, the inputs of every model run (`specs.zip`), and `SHA256SUMS`.
+Canal Street clips side by side, the snow window at guidance 6 (`..._snow_S2_5.8s.mp4`), the
+inputs of every model run (`specs.zip`), `MANIFEST.md` and `SHA256SUMS`.
 
-- Water, paving, trees, lawns and traffic look real, and the geometry follows the render frame
-  for frame: streets, crossings, cars and buildings stay where the simulator put them.
+### What the video model adds
+
+![Canal Street at 150 ft, crop: simulator (top), generated (bottom)](docs/media/canal_150ft_crop.jpg)
+
+![Bronx at 150 ft, crop: simulator (top), generated (bottom)](docs/media/bronx_150ft_crop.jpg)
+
+Crops at full resolution, simulator on top, generated below: a plaza on Canal Street at 150 ft
+(2 s into the clip) and a park in the Bronx at 150 ft (4 s in).
+
+- The simulator carries the geometry, the motion and the layout: every path, kerb, crossing,
+  tree and person is where the render put it.
+- The model adds surface texture (paving joints and slabs on what the render shows as flat
+  colour), softer photographic light, more natural foliage and water, and weather.
+- It loses small things: pedestrians smear into blobs, thin poles and signals can turn into grey
+  shapes or vanish, and at 500 ft facades go blank.
+- The setting is conservative on purpose. Looser control weights changed more but invented
+  content, such as a pool on a lawn or drifting layout (ablations
+  [01](docs/ablations/01_control_weights.md), [02](docs/ablations/02_prompts.md) and
+  [04](docs/ablations/04_long_clips.md)).
+
+### Limits seen in the results
+
+- The geometry follows the render frame for frame: streets, crossings, cars and buildings stay
+  where the simulator put them.
 - Facades lose detail. At 500 ft the window grid of large buildings disappears and they become
   plain grey or glass blocks; at 150 ft a tall facade softens near the end of the Canal Street clip.
 - In the fog clip the fog thickens in one step at 5.8 s, where the model starts its second
   93-frame chunk (about 4.5% brighter). Everything else in that clip is continuous.
-- Snow is not in the results; see [Known limits](#known-limits).
+- Snow is a verified prompt fix on one 5.8 s window, not yet the repository's built-in snow
+  prompt; see [The video model](#the-video-model) and [Known limits](#known-limits).
 
 ## How it works
 
@@ -54,6 +79,10 @@ Canal Street clips side by side, the inputs of every model run (`specs.zip`), an
 8. Cosmos-Transfer2.5-2B with setting M2 (below), one model run per clip, each 93-frame chunk
    continuing from the last frame of the one before.
 9. For clips longer than one model run, `nyc-drone join` cross-fades two runs over their shared frames.
+
+Weather: fog uses the renderer's own fog render of the same flight as the model's colour guide,
+plus the fog prompt. Snow uses setting t4 (depth and geometry edges, no segmentation) plus a snow
+prompt.
 
 ## Quickstart
 
@@ -85,8 +114,9 @@ dropped a request. Run the same command again: every response already received i
 
 [docs/reproduce_results.md](docs/reproduce_results.md) lists every command that made the five
 videos, in the order they ran, at commit `674cc7e`: the Canal Street scene, five renders, seven
-model runs and two joins. Each step has its output, wall time and peak GPU memory. On one
-NVIDIA RTX PRO 6000 (96 GB) the renders took 1 h 36 min and the model runs 4 h 54 min.
+model runs and two joins, then the snow window. Each step has its output, wall time and peak GPU
+memory. On one NVIDIA RTX PRO 6000 (96 GB) the renders took 1 h 36 min, the model runs for the
+five videos 4 h 54 min, and each snow window 14 min.
 
 ## Hardware and time
 
@@ -99,7 +129,7 @@ about 65 to 72 GB of GPU memory. One RTX PRO 6000 (96 GB) ran both, one after th
 | `scene` (data, scene, flight paths) | CPU; internet on the first run of a place | Canal Street route: 7.8 min. Under 1 min for a 400 m scene; 13 to 60 min for an 800 m scene |
 | `render` | RT-core GPU; 3.5 to 4.2 GB of its memory | RTX PRO 6000: 0.41 s per frame at 150 ft and 1.35 s at 500 ft when writing to local disk; 1.08 and 2.16 s per frame when writing to a network-mounted disk. L40S: 1.16 to 1.31 s per frame. Start-up 82 s on a new machine (shader cache), 21 s after |
 | `check` | CPU | render checks of two 768-frame altitudes: 5.2 min |
-| `generate`, one 93-frame window | 80 GB GPU, Linux x86-64, glibc 2.35 or newer | 17.5 to 22.7 min, of which 5 to 7.5 min load the model; peak 64.8 to 69.2 GB |
+| `generate`, one 93-frame window | 80 GB GPU, Linux x86-64, glibc 2.35 or newer | 14.0 to 22.7 min, of which 5 to 7.5 min load the model; peak 62.9 to 69.2 GB (63 to 65 GB for t4, which has no segmentation or colour control) |
 | `generate`, a 240-frame chain (3 chunks, 15 s) | the same | 41.1 to 42.3 min; peak 70.6 to 71.2 GB |
 | `generate`, a 30 s clip (two 248-frame chains, then `join`) | the same | 83.9 and 85.8 min; peak 70.6 GB |
 
@@ -322,13 +352,30 @@ blur high) of the enhanced render's depth, geometry edges and segmentation (sett
 with the fog paragraph in the prompt. The guide must have the same frame count and camera poses
 as the render it guides.
 
+**Snow.** Setting t4 is depth 1.0 and geometry edges 1.0, with no segmentation (in the snow
+grid of [01](docs/ablations/01_control_weights.md), white ground was 53% without segmentation
+against 14% with it). With the built-in prompt t4 gives no snow. The scene sentences before the
+snow paragraph describe a dry, green scene: for a window the place's scene text ("paved with
+large pale grey stone and concrete slabs, flat, clean and dry", "a row of leafy green street
+trees"), for a chain the class sentences ("leafy green tree canopies", "green lawns"). They
+outweigh the snow paragraph. Replacing the whole prompt with a snow version of every scene
+sentence ([docs/snow_prompt.txt](docs/snow_prompt.txt):
+bare snowy trees, snow-covered paving with footprints, snow on roofs and cars, pedestrians in
+winter coats, a dark river with ice floes) gives snow cover on the paving, roofs, cars and
+trees, footprint trails and a dark river, on one 93-frame window with the same seed, steps and
+controls. The roads came out white rather than the dark wet asphalt the prompt asks for. This is
+a verified prompt fix, not yet a code path: `--weather snow` still builds the old prompt. [docs/reproduce_results.md](docs/reproduce_results.md#snow-window) shows how the
+window was made.
+
+![Snow at route frame 162: simulator, built-in snow prompt, fixed snow prompt](docs/media/snow_prompt_fix.jpg)
+
 ## What we learned
 
 | Page | Finding |
 | --- | --- |
 | [01 Control weights](docs/ablations/01_control_weights.md) | Depth 0.5, edge 0.3, segmentation 0.5 looks real and keeps the layout; full weights are dull; depth alone breaks the layout |
 | [02 Prompts](docs/ablations/02_prompts.md) | Naming each surface helps; naming something not in frame paints it in; one prompt for a long flight invents content |
-| [03 Weather in the model](docs/ablations/03_weather_model.md) | A weather prompt alone barely changes the weather; fog works with the simulator's fog render as the colour guide |
+| [03 Weather in the model](docs/ablations/03_weather_model.md) | A weather prompt alone barely changes the weather; fog works with the simulator's fog render as the colour guide; snow appears once every class sentence of the prompt describes snow |
 | [04 Long clips](docs/ablations/04_long_clips.md) | Independent windows change look at every join; with M2 a chain is continuous, and three-chunk chains fit in 71 GB |
 | [05 Look and renderer weather](docs/ablations/05_look_and_renderer_weather.md) | The enhanced look keeps geometry and speed; renderer fog works but its strength must be set per altitude; renderer wet weather is too weak to see |
 | [06 Validation](docs/ablations/06_validation.md) | The simulator's geometry and altitude are right to 0.044%; no single score on generated video picks the best setting |
@@ -366,9 +413,12 @@ against their expected poses.
 - Output is 1280 x 720 at 16 fps.
 - In a chain, a chunk can start with slightly different light. In the fog clip the second chunk
   is about 4.5% brighter, so the fog thickens in one step at 5.8 s.
-- Snow: setting t4 exists and `--weather snow` runs, but the class sentences of the prompt
-  describe green trees, green lawns and dry paving, and they override the snow paragraph.
-  Weather-specific class sentences would fix it; they are not implemented.
+- Snow: `--weather snow` (setting t4) runs, but its built-in prompt still has the conflict: the
+  scene sentences (the place's scene text for a window, the class sentences for a chain)
+  describe green trees and dry paving, and they override the snow paragraph. A snow version of
+  every scene sentence gives snow; it is verified on one 93-frame window but not in the code.
+  Weather-specific scene and class sentences (`configs/gen_prompts_windows.yaml`,
+  `configs/gen_prompts_classes.yaml`) are the next step.
 - Rain is not available.
 - `--sim-weather fog` is not combined with `--look enhanced`.
 - The repeat render of frame 0 has scored about 30 dB colour PSNR at some addresses: a renderer

@@ -1,6 +1,6 @@
-# Reproduce the five videos
+# Reproduce the results
 
-Every command that made the v1.0 videos, in the order it ran, with its output, wall time and
+Every command that made the v1.0 videos and the snow window, in the order it ran, with its output, wall time and
 peak GPU memory.
 
 - Code: this repository at commit `674cc7e`.
@@ -132,12 +132,67 @@ four standard deviations above the clip's mean. In clip c the second chunk start
 brighter (change 2.18 against a limit of 1.93); fog makes the change between frames small and
 even, so its limit is tight. The fog thickens in one step there, at 5.8 s.
 
+## Snow window
+
+The repository's built-in snow prompt does not give snow (quick test step 7: green trees, dry
+paving): its scene sentences describe a dry, green scene and outweigh the snow paragraph. The
+snow window was made with the same spec and only the prompt replaced. It is one 93-frame window
+(5.8 s) of Canal Street at 150 ft, route frames 114 to 206, setting t4 (depth 1.0, geometry
+edges 1.0, no segmentation), seed 2026, 35 steps. S1 uses guidance 3, like every other clip; S2
+uses guidance 6.
+
+1. The render: quick test step 1 (it needs the scene of step 0).
+
+```bash
+env_sim/bin/python -m nyc_drone_sim.sim.render --config runs/quick/canal/config.yaml \
+    --location canal-shore-street --variant long --altitude 150 --frames 114:185 --look enhanced --run render
+```
+
+2. The window's spec. The snow window used the `spec.json` that quick test step 7 wrote
+   (`runs/quick/canal/work/render/canal-shore-street/150/gen/cosmos-transfer2.5-2b/snow_t4_window_0000/spec.json`),
+   copied to `runs/snow_test/S1/` and `runs/snow_test/S2/`. Without running step 7, the same
+   command with `--specs-only` writes the controls, `spec.json`, `prompt.txt` and `clip.json`
+   into a new, empty folder, with paths relative to the spec (this way was not used for the
+   snow window):
+
+```bash
+${MODEL_PYTHON:-env_gen/bin/python} -m nyc_drone_sim.gen.makeclip --run-folder runs/quick/canal/work/render/canal-shore-street \
+    --altitude 150 --method window --start 0 --weather snow --setting t4 --specs-only runs/snow_test/S1
+cp -R runs/snow_test/S1 runs/snow_test/S2
+```
+
+3. Replace only the prompt with [snow_prompt.txt](snow_prompt.txt); for S2 also set guidance 6:
+
+```bash
+python3 -c "import json, sys; p = sys.argv[1]; s = json.load(open(p)); s['prompt'] = open('docs/snow_prompt.txt').read().strip(); json.dump(s, open(p, 'w'), indent=1)" runs/snow_test/S1/spec.json
+python3 -c "import json, sys; p = sys.argv[1]; s = json.load(open(p)); s['prompt'] = open('docs/snow_prompt.txt').read().strip(); s['guidance'] = 6; json.dump(s, open(p, 'w'), indent=1)" runs/snow_test/S2/spec.json
+```
+
+4. Run the model on each spec, one at a time, as the model step itself calls it (in the model
+   checkout):
+
+```bash
+R=$PWD
+(cd "$MODEL_REPO" && HF_HUB_OFFLINE=1 "$MODEL_PYTHON" examples/inference.py -i "$R/runs/snow_test/S1/spec.json" -o "$R/runs/snow_test/S1/output")
+(cd "$MODEL_REPO" && HF_HUB_OFFLINE=1 "$MODEL_PYTHON" examples/inference.py -i "$R/runs/snow_test/S2/spec.json" -o "$R/runs/snow_test/S2/output")
+```
+
+| Run | Guidance | Output | Wall time | Peak GPU |
+| --- | --- | --- | --- | --- |
+| S1 | 3 | `runs/snow_test/S1/output/out.mp4`, 93 frames | 13.95 min (837 s) | 62,915 MiB |
+| S2 | 6 | `runs/snow_test/S2/output/out.mp4`, 93 frames | 13.97 min (838 s) | 62,915 MiB |
+
+Peak GPU memory for the snow runs is from `nvidia-smi` every 5 s. The next step is to put
+weather-specific scene and class sentences into `configs/gen_prompts_windows.yaml` and
+`configs/gen_prompts_classes.yaml`, so that `--weather snow` builds this kind of prompt itself.
+
 ## Totals
 
 - Renders: 1 h 36 min for the five renders, plus 5.2 min of render checks.
-- Model: 4 h 54 min for seven chains. Each chain loads the model again (5 to 7.5 min).
+- Model: 4 h 54 min for the seven chains of the five videos. Each chain loads the model again
+  (5 to 7.5 min). Each snow window: 14 min.
 - Joins: 8 s.
 
-The five videos, the simulator clip of the same frames, the side-by-sides, every chain folder
-(`specs.zip`) and `SHA256SUMS` are in the
+The videos, the simulator clip of the same frames, the side-by-sides, every model run's inputs
+(`specs.zip`), `MANIFEST.md` and `SHA256SUMS` are in the
 [v1.0 release](https://github.com/satyam19k/nyc-drone-sim/releases/tag/v1.0).
