@@ -100,6 +100,15 @@ def build_parser() -> argparse.ArgumentParser:
                    help="K2: depth 0.5, rendered edges 0.3, segmentation 0.5; M2: K2 plus the render's colours "
                         "(blur control 0.3, preset high), for renders made with --look enhanced; t4: depth 1.0, "
                         "geometry edges 1.0, no segmentation (default: K2 for clear, t4 for snow)")
+    g.add_argument("--guide-video", nargs="+", metavar="PATH",
+                   help="with --model-setting M2: a colour video of the same flight (same frames and camera poses) "
+                        "to guide the colours instead of the render's own rgb.mp4; one per altitude")
+    g.add_argument("--guide-poses", nargs="+", metavar="PATH",
+                   help="the camera_poses.json of each guide video, checked against the render's poses "
+                        "(found by itself when it lies beside the video)")
+    g.add_argument("--specs-only", metavar="OUT",
+                   help="write the control videos, spec, prompt and clip.json of each clip into OUT/<altitude>/ "
+                        "and do not run the model; OUT can be copied to another machine")
 
     g = ap.add_argument_group("route and reproduce")
     g.add_argument("--poses-only", action="store_true",
@@ -162,10 +171,16 @@ def resolve(a: argparse.Namespace) -> tuple[dict, str, str | None]:
         if w not in WEATHERS:
             raise SystemExit(f"--weather {w}: choose from {', '.join(WEATHERS)}")
     model = a.realism == "model" or a.command == "generate"
-    if not model and (a.weather != ["clear"] or a.method != "window" or a.frames or a.model_setting):
-        raise SystemExit("--weather, --method, --frames and --model-setting are for the video model: add --realism model")
+    if not model and (a.weather != ["clear"] or a.method != "window" or a.frames or a.model_setting
+                      or a.guide_video or a.guide_poses or a.specs_only):
+        raise SystemExit("--weather, --method, --frames, --model-setting, --guide-video and --specs-only are for "
+                         "the video model: add --realism model")
     if a.frames and a.method != "chain":
         raise SystemExit("--frames is for --method chain; --method window takes --start")
+    if a.guide_video and a.model_setting != "M2":
+        raise SystemExit("--guide-video is the colour guide of --model-setting M2")
+    if a.guide_poses and (not a.guide_video or len(a.guide_poses) != len(a.guide_video)):
+        raise SystemExit("--guide-poses: one per --guide-video")
     cfg = load_config()
     if a.config:
         cfg = merge(cfg, yaml.safe_load(Path(a.config).read_text()) or {})
@@ -420,16 +435,21 @@ def side_by_side(out: Path, alts: list) -> None:
 def step_generate(a, cfg, location, out: Path, timings: dict) -> None:
     """The video model on the rendered clips, for each --weather. By default one 93-frame window from
     --start; --method chain restyles --frames (default the whole clip) in one model run. Runs in the
-    model's Python. Each clip is copied to <altitude>/weather/ beside its spec, prompt and clip.json."""
+    model's Python. Each clip is copied to <altitude>/weather/ beside its spec, prompt and clip.json.
+    With --specs-only, everything the model would need goes to OUT/<altitude>/<clip>/ instead."""
     from .gen.common import load_gen_config, model_dir
     from .gen.makeclip import frame_range, look_warning, prompts
     from .gen.model import model_python
-    check_model()
+    if not a.specs_only:
+        check_model()
     gcfg = load_gen_config()
     settings = prompts()["settings"]
     py, log = model_python(gcfg), out / "work" / "generate.log"
     run_folder = out / "work" / "render" / slugify(location)
-    for alt in cfg["altitudes_ft"]:
+    alts = cfg["altitudes_ft"]
+    if a.guide_video and len(a.guide_video) != len(alts):
+        raise SystemExit(f"--guide-video: one per altitude ({len(alts)}), in the order {alts}")
+    for i, alt in enumerate(alts):
         bdir = run_folder / str(alt)
         if not (bdir / "bundle.json").exists():
             raise SystemExit(f"no render at {bdir}: run the render step first")
@@ -438,17 +458,25 @@ def step_generate(a, cfg, location, out: Path, timings: dict) -> None:
             tag = f"chain_{start:04d}_{count:04d}"
         else:
             tag = f"window_{a.start:04d}"
-        if not (bdir / "gen" / "inputs" / "inputs.json").exists():
-            timings[f"controls_{alt}"] = call([py, "-m", "nyc_drone_sim.gen.controls", "--run-folder", str(run_folder),
-                                               "--altitude", str(alt)], log)
         for weather in a.weather:
             setting = a.model_setting or gcfg["generate"]["default_setting"][weather]
-            warn = look_warning(bdir, setting, settings[setting])
+            warn = None if a.guide_video else look_warning(bdir, setting, settings[setting])
             if warn:
                 print(f"{alt} ft: {warn}", flush=True)
             cmd = [py, "-m", "nyc_drone_sim.gen.makeclip", "--run-folder", str(run_folder), "--altitude", str(alt),
                    "--weather", weather, "--setting", setting, "--method", a.method]
             cmd += ["--start", str(a.start)] if a.method == "window" else ["--frames", f"{start}:{count}"]
+            if a.guide_video:
+                cmd += ["--guide-video", str(Path(a.guide_video[i]).resolve())]
+                if a.guide_poses:
+                    cmd += ["--guide-poses", str(Path(a.guide_poses[i]).resolve())]
+            if a.specs_only:
+                dest = Path(a.specs_only).resolve() / str(alt) / f"{weather}_{setting}_{tag}"
+                timings[f"specs_{alt}_{weather}"] = call(cmd + ["--specs-only", str(dest)], log)
+                if not (dest / "spec.json").exists():
+                    raise SystemExit(f"no spec.json in {dest}; see {log}")
+                print(f"{alt} ft, {weather}: {dest}", flush=True)
+                continue
             timings[f"generate_{alt}_{weather}"] = call(cmd, log)
             made = sorted((d for d in model_dir(bdir, gcfg).glob(f"{weather}_{setting}_{tag}*") if ".tmp_" not in d.name),
                           key=lambda d: d.stat().st_mtime)
@@ -525,7 +553,7 @@ def main(argv=None) -> None:
     # stop at once, before any work, when a later step could not run on this machine
     if full or cmd == "render":
         check_simulator(a)
-    if (full and a.realism == "model") or cmd == "generate":
+    if ((full and a.realism == "model") or cmd == "generate") and not a.specs_only:
         check_model()
     if full or cmd == "scene":
         fetch_models_if_missing(cfg)

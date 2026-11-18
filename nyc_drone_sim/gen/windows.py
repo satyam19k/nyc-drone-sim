@@ -49,10 +49,12 @@ def contour_lines(grey: np.ndarray, mask: np.ndarray) -> dict:
             "p99_px": float(np.percentile(runs, 99)), "longest_px": int(runs.max())}
 
 
-def cut_window(bdir: Path, name: str, start: int, frames: int, cfg: dict) -> dict:
+def cut_window(bdir: Path, name: str, start: int, frames: int, cfg: dict, out: Path | None = None,
+               only: set[str] | None = None) -> dict:
+    """Into <bundle>/gen/windows/<name>/, or `out`; with `only`, just those files and window.json."""
     import cv2
     cc = cfg["controls"]
-    out = bdir / "gen" / "windows" / name
+    out = out or bdir / "gen" / "windows" / name
     out.mkdir(parents=True, exist_ok=True)
     idx = list(range(start, start + frames))
     clip = bdir / "clip_0000"
@@ -85,6 +87,8 @@ def cut_window(bdir: Path, name: str, start: int, frames: int, cfg: dict) -> dic
     files = {"rgb.mp4": png("rgb"), "segmentation.mp4": png("segmentation"), "edges_rendered.mp4": png("edges"),
              "edges_geometry.mp4": geometry_edges(), "depth_control.mp4": depth(False),
              "depth_control_smooth.mp4": depth(True)}
+    if only is not None:
+        files = {k: v for k, v in files.items() if k in only}
     counts = {}
     for fname, gen in files.items():
         crf = int(cc["crf"]) if fname != "depth_control_smooth.mp4" else int(cfg["window"]["smooth_crf"])
@@ -93,6 +97,25 @@ def cut_window(bdir: Path, name: str, start: int, frames: int, cfg: dict) -> dic
             "depth_range_m": [near, far], "files": {k: video_info(out / k) for k in files}}
     (out / "window.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
+
+
+def cut_video(src: Path, start: int, count: int, dst: Path, cfg: dict) -> int:
+    """Frames start .. start + count - 1 of a video, re-encoded like the other controls."""
+    import cv2
+    cap = cv2.VideoCapture(str(src))
+    for _ in range(start):                     # decode up to start: seeking in H.264 is not frame-exact
+        if not cap.grab():
+            raise RuntimeError(f"{src} ends before frame {start}")
+
+    def frames():
+        for _ in range(count):
+            ok, f = cap.read()
+            if not ok:
+                raise RuntimeError(f"{src} ends before frame {start + count - 1}")
+            yield cv2.cvtColor(f, cv2.COLOR_BGR2RGB)
+    n = write_video(frames(), dst, cfg["controls"]["fps"], int(cfg["controls"]["crf"]))
+    cap.release()
+    return n
 
 
 if __name__ == "__main__":

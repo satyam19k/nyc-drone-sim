@@ -303,47 +303,8 @@ def run_windows(bdir: Path, weather: str, setting_name: str, cfg: dict, piece: i
     return 0
 
 
-def run_window(bdir: Path, weather: str, setting_name: str, cfg: dict, start: int = 0) -> int:
-    """One 93-frame window from `start`, generated alone from its own controls and prompt."""
-    p = prompts()
-    setting = p["settings"][setting_name]
-    n = video_info(bdir / "clip_0000" / "rgb.mp4")["frames"]
-    if start < 0 or start + WINDOW > n:
-        raise SystemExit(f"--start {start}: a {WINDOW}-frame window must fit in the clip's {n} frames (0 to {n - WINDOW})")
-    name = f"one_{start:04d}"
-    w = bdir / "gen" / "windows" / name
-    if not (w / "window.json").exists():
-        from .windows import cut_window
-        cut_window(bdir, name, start, WINDOW, cfg)
-    prompt, wet = prompt_for(bdir, weather, start, WINDOW, p)
-    edge_file = "edges_rendered.mp4" if setting["edge"] == "rendered" else "edges_geometry.mp4"
-    final = unique_dir(model_dir(bdir, cfg) / f"{weather}_{setting_name}_window_{start:04d}")
-    work = final.with_name(final.name + ".tmp_" + time.strftime("%Y%m%d_%H%M%S"))
-    work.mkdir(parents=True)
-    spec = base_spec(setting, cfg, "out", prompt, w / "rgb.mp4", w / "depth_control.mp4", w / edge_file, w / "segmentation.mp4")
-    (work / "spec.json").write_text(json.dumps(spec, indent=1) + "\n")
-    (work / "prompt.txt").write_text(prompt + "\n")
-    warn = look_warning(bdir, setting_name, setting)
-    if warn:
-        print(warn, flush=True)
-    t0 = time.time()
-    rc = run_batch([work / "spec.json"], work, cfg, log=work / "run.log")
-    if rc != 0 or not (work / "out.mp4").exists():
-        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, window from frame {start}",
-                   f"- exit code {rc}; kept in `{work}`"])
-        return 1
-    (work / "clip.json").write_text(json.dumps({
-        "method": "window", "start": start, "frames": WINDOW, "scene": scene_name(bdir), "altitude_ft": int(bdir.name),
-        "weather": weather, "setting": setting_name, "setting_values": setting, "seed": int(cfg["sampling"]["seed"]),
-        "prompt": prompt, "water_in_frame": wet, "look_warning": warn, "seconds": round(time.time() - t0, 1),
-        "model_commit": cfg["model"]["commit"], "bundle_sha256": bundle_hash(bdir)}, indent=1) + "\n")
-    work.rename(final)
-    summarise([f"## {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, frames {start} to {start + WINDOW - 1}",
-               f"- video: `{final / 'out.mp4'}`", f"- generation time {(time.time() - t0) / 60:.0f} min"])
-    return 0
-
-
-CHAIN_COND = 1         # frames of the previous chunk each chunk of a chain starts from
+CHAIN_COND = 1                  # frames of the previous chunk each chunk of a chain starts from
+GUIDE_POSE_TOLERANCE = (0.05, 0.2)   # metres, degrees: the render check's own limits for camera pose
 
 
 def frame_range(frames: str | None, n: int, min_frames: int = WINDOW) -> tuple[int, int]:
@@ -360,53 +321,196 @@ def frame_range(frames: str | None, n: int, min_frames: int = WINDOW) -> tuple[i
     return start, count
 
 
-def chain_spec(bdir: Path, weather: str, setting_name: str, cfg: dict, start: int, count: int) -> tuple[dict, dict]:
-    """The model's spec for frames start .. start + count - 1 in one chained run, and what it was
-    made from. The controls are cut from the bundle's own frames for that range."""
-    from .prompt import class_config, class_prompt, class_shares
+def clip_tag(method: str, start: int, count: int) -> str:
+    return f"window_{start:04d}" if method == "window" else f"chain_{start:04d}_{count:04d}"
+
+
+def window_name(method: str, start: int, count: int) -> str:
+    """The folder under <bundle>/gen/windows/ that holds the controls of a clip."""
+    return f"one_{start:04d}" if method == "window" else f"chain_{start:04d}_{count:04d}"
+
+
+def control_names(setting: dict) -> dict[str, str]:
+    """The file each part of the spec uses, as cut_window names them."""
+    names = {"video": "rgb.mp4", "depth": "depth_control.mp4",
+             "edge": "edges_rendered.mp4" if setting["edge"] == "rendered" else "edges_geometry.mp4"}
+    if setting["weights"][2] is not None:
+        names["seg"] = "segmentation.mp4"
+    return names
+
+
+def spec_from(setting: dict, cfg: dict, prompt: str, files: dict, method: str) -> dict:
+    spec = base_spec(setting, cfg, "out", prompt, files["video"], files["depth"], files["edge"], files.get("seg", ""))
+    if method == "chain":
+        spec["num_conditional_frames"] = CHAIN_COND
+    return spec
+
+
+def describe(bdir: Path, weather: str, setting_name: str, cfg: dict, method: str, start: int, count: int,
+             guide: dict | None = None) -> tuple[dict, dict]:
+    """(setting, clip.json contents) of one clip: its prompt and everything it is made from, apart
+    from the control files themselves."""
     p = prompts()
     setting = p["settings"][setting_name]
-    name = f"chain_{start:04d}_{count:04d}"
-    w = bdir / "gen" / "windows" / name
-    if not (w / "window.json").exists():
-        from .windows import cut_window
-        cut_window(bdir, name, start, count, cfg)
-    shares = class_shares(bdir, start, count)
-    prompt, groups = class_prompt(shares, weather, class_config(), p)
-    edge_file = "edges_rendered.mp4" if setting["edge"] == "rendered" else "edges_geometry.mp4"
-    spec = base_spec(setting, cfg, "out", prompt, w / "rgb.mp4", w / "depth_control.mp4", w / edge_file, w / "segmentation.mp4")
-    spec["num_conditional_frames"] = CHAIN_COND
-    info = {"method": "chain", "start": start, "frames": count, "scene": scene_name(bdir), "altitude_ft": int(bdir.name),
-            "weather": weather, "setting": setting_name, "setting_values": setting, "seed": int(cfg["sampling"]["seed"]),
-            "num_conditional_frames": CHAIN_COND, "prompt": prompt, "described": groups,
-            "shares_percent": {k: round(100 * v, 1) for k, v in shares.items() if v >= 0.005},
-            "look_warning": look_warning(bdir, setting_name, setting),
-            "model_commit": cfg["model"]["commit"], "bundle_sha256": bundle_hash(bdir)}
-    return spec, info
+    info = {"method": method, "start": start, "frames": count, "scene": scene_name(bdir), "altitude_ft": int(bdir.name),
+            "weather": weather, "setting": setting_name, "setting_values": setting, "seed": int(cfg["sampling"]["seed"])}
+    if method == "window":
+        info["prompt"], info["water_in_frame"] = prompt_for(bdir, weather, start, count, p)
+    else:
+        from .prompt import class_config, class_prompt, class_shares
+        shares = class_shares(bdir, start, count)
+        info["prompt"], info["described"] = class_prompt(shares, weather, class_config(), p)
+        info["shares_percent"] = {k: round(100 * v, 1) for k, v in shares.items() if v >= 0.005}
+        info["num_conditional_frames"] = CHAIN_COND
+    info["guide_video"] = guide
+    info["look_warning"] = None if guide else look_warning(bdir, setting_name, setting)
+    info.update({"model_commit": cfg["model"]["commit"], "bundle_sha256": bundle_hash(bdir)})
+    return setting, info
 
 
-def run_chain(bdir: Path, weather: str, setting_name: str, cfg: dict, frames: str | None = None) -> int:
-    """One run of the model over frames START:COUNT (default the whole clip), in its own 93-frame
-    chunks, each starting from the last frame of the one before; one prompt for the chain, built
-    from what is in view over those frames. The spec, the prompt and clip.json are kept beside
-    out.mp4, so the clip can be made again exactly."""
+def file_sha256(path: Path) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def load_poses(path: Path) -> np.ndarray:
+    """Camera-to-world matrices from a camera_poses.json (a list, as nyc-drone writes it) or from a
+    bundle's camera/ folder of camera_NNNN.json."""
+    items = ([json.loads(f.read_text()) for f in sorted(path.glob("camera_*.json"))] if path.is_dir()
+             else json.loads(path.read_text()))
+    return np.asarray([it["requested_camera_to_world"] for it in items], dtype=float)
+
+
+def guide_poses_beside(guide: Path) -> Path | None:
+    """camera_poses.json next to the video (a nyc-drone run), or the camera/ folder of the bundle
+    whose clip_0000/rgb.mp4 it is."""
+    for cand in (guide.parent / "camera_poses.json", guide.parent.parent / "camera"):
+        if cand.exists() and guide.parent.name != "weather":
+            return cand
+    return None
+
+
+def check_guide(bdir: Path, setting_name: str, setting: dict, guide: Path, poses: Path | None) -> dict:
+    """A colour video of the same flight for the blur control: same frame count as the bundle and,
+    when its camera poses are known, the same poses within the render check's limits."""
+    from nyc_drone_sim.routes import compare_poses
+    if not setting.get("vis"):
+        raise SystemExit(f"--guide-video is for a setting with the colour guide (M2), not {setting_name}")
+    if not guide.exists():
+        raise SystemExit(f"--guide-video {guide}: no such file")
+    n = int(json.loads((bdir / "bundle.json").read_text())["clip"]["frames"])
+    g = int(video_info(guide)["frames"])
+    if g != n:
+        raise SystemExit(f"--guide-video {guide}: {g} frames, the render has {n}; it must be a video of the same flight")
+    poses = poses or guide_poses_beside(guide)
+    if poses is None:
+        result = "not checked: no camera poses given or found beside the video"
+    else:
+        result = compare_poses({"guide": load_poses(poses)}, {"poses": {"guide": load_poses(bdir / "camera")}})["guide"]
+        if "error" in result:
+            raise SystemExit(f"--guide-video {guide}: its camera poses have {result['error']}")
+        result["poses"] = str(Path(poses).resolve())
+        if result["max_position_m"] > GUIDE_POSE_TOLERANCE[0] or result["max_rotation_deg"] > GUIDE_POSE_TOLERANCE[1]:
+            raise SystemExit(f"--guide-video {guide}: its camera poses differ from the render's by up to "
+                             f"{result['max_position_m']:.3f} m and {result['max_rotation_deg']:.3f} deg "
+                             f"(limits {GUIDE_POSE_TOLERANCE[0]} m, {GUIDE_POSE_TOLERANCE[1]} deg)")
+    print(f"guide video {guide}: {g} frames; poses {result if isinstance(result, str) else 'match'}", flush=True)
+    return {"path": str(guide.resolve()), "sha256": file_sha256(guide), "frames": g, "pose_check": result}
+
+
+def guide_for_range(guide: Path, start: int, count: int, n: int, dest: Path, cfg: dict) -> Path:
+    """The guide video for frames start .. start + count - 1: itself for the whole clip, else a cut."""
+    if (start, count) == (0, n):
+        return guide
+    if not dest.exists():
+        from .windows import cut_video
+        cut_video(guide, start, count, dest, cfg)
+    return dest
+
+
+def run_request(bdir: Path, weather: str, setting_name: str, cfg: dict, method: str, frames: str | None = None,
+                start: int = 0, guide: str | None = None, guide_poses: str | None = None) -> int:
+    """Generate one clip: a 93-frame window from `start`, or a chain over `frames`. The spec, the
+    prompt and clip.json are kept beside out.mp4, so the clip can be made again exactly."""
     n = video_info(bdir / "clip_0000" / "rgb.mp4")["frames"]
-    start, count = frame_range(frames, n)
-    spec, info = chain_spec(bdir, weather, setting_name, cfg, start, count)
+    start, count = frame_range(frames, n) if method == "chain" else frame_range(f"{start}:{WINDOW}", n)
+    g = check_guide(bdir, setting_name, prompts()["settings"][setting_name], Path(guide),
+                    Path(guide_poses) if guide_poses else None) if guide else None
+    setting, info = describe(bdir, weather, setting_name, cfg, method, start, count, g)
     if info["look_warning"]:
         print(info["look_warning"], flush=True)
-    tag = f"chain_{start:04d}_{count:04d}"
+    w = bdir / "gen" / "windows" / window_name(method, start, count)
+    if not (w / "window.json").exists():
+        from .windows import cut_window
+        cut_window(bdir, w.name, start, count, cfg)
+    files = {k: w / v for k, v in control_names(setting).items()}
+    if g:
+        files["video"] = guide_for_range(Path(guide), start, count, n, w / f"guide_{g['sha256'][:12]}.mp4", cfg)
+    spec = spec_from(setting, cfg, info["prompt"], files, method)
+    tag = clip_tag(method, start, count)
     sdir = model_dir(bdir, cfg) / "full_specs"
     sdir.mkdir(parents=True, exist_ok=True)
     spath = sdir / f"{weather}_{setting_name}_{tag}.json"
     spath.write_text(json.dumps(spec, indent=1) + "\n")
     out = run_clip(spath, model_dir(bdir, cfg) / f"{weather}_{setting_name}_{tag}", cfg)
     if out is None:
-        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, chained, frames {start}:{count}"])
+        summarise([f"## FAILED: {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, {method}, frames {start}:{count}"])
         return 1
     (out / "clip.json").write_text(json.dumps(info, indent=1) + "\n")
-    describe_chain(bdir, out, info)
+    if method == "chain":
+        describe_chain(bdir, out, info)
+    else:
+        summarise([f"## {scene_name(bdir)} {bdir.name} ft, {weather}, {setting_name}, frames {start} to {start + count - 1}",
+                   f"- video: `{out / 'out.mp4'}`"])
     return 0
+
+
+def write_specs(bdir: Path, weather: str, setting_name: str, cfg: dict, method: str, out: Path, frames: str | None = None,
+                start: int = 0, guide: str | None = None, guide_poses: str | None = None) -> Path:
+    """Everything the model needs for one clip, in `out`, without running it: the control videos the
+    spec uses (cut to the frame range), spec.json with paths relative to itself (the model reads
+    them so), prompt.txt and clip.json. Controls already cut in the bundle are copied, not rebuilt.
+    `out` can be copied to another machine as it is."""
+    import shutil
+    if out.exists() and any(out.iterdir()):
+        raise SystemExit(f"--specs-only {out}: the folder is not empty; give a new one")
+    n = int(json.loads((bdir / "bundle.json").read_text())["clip"]["frames"])
+    start, count = frame_range(frames, n) if method == "chain" else frame_range(f"{start}:{WINDOW}", n)
+    g = check_guide(bdir, setting_name, prompts()["settings"][setting_name], Path(guide),
+                    Path(guide_poses) if guide_poses else None) if guide else None
+    setting, info = describe(bdir, weather, setting_name, cfg, method, start, count, g)
+    if info["look_warning"]:
+        print(info["look_warning"], flush=True)
+    names = control_names(setting)
+    if g:
+        names["video"] = "guide.mp4"
+    cut = {v for k, v in names.items() if not (g and k == "video")}
+    out.mkdir(parents=True, exist_ok=True)
+    w = bdir / "gen" / "windows" / window_name(method, start, count)
+    if (w / "window.json").exists() and all((w / f).exists() for f in cut):
+        for f in sorted(cut):
+            shutil.copy(w / f, out / f)
+        info["controls"] = f"copied from {w}"
+    else:
+        from .windows import cut_window
+        cut_window(bdir, w.name, start, count, cfg, out=out, only=cut)
+        info["controls"] = "cut from the bundle's frames"
+    if g:
+        src = guide_for_range(Path(guide), start, count, n, out / "guide.mp4", cfg)
+        if src != out / "guide.mp4":
+            shutil.copy(src, out / "guide.mp4")
+    spec = spec_from(setting, cfg, info["prompt"], names, method)        # bare names: relative to spec.json
+    info["files_sha256"] = {f: file_sha256(out / f) for f in sorted(set(names.values()))}
+    info["specs_only"] = True
+    (out / "spec.json").write_text(json.dumps(spec, indent=1) + "\n")
+    (out / "prompt.txt").write_text(info["prompt"] + "\n")
+    (out / "clip.json").write_text(json.dumps(info, indent=1) + "\n")
+    print(f"specs only: {out} (spec.json, prompt.txt, clip.json, {', '.join(sorted(set(names.values())))})", flush=True)
+    return out
 
 
 def describe_chain(bdir: Path, out: Path, info: dict) -> None:
@@ -431,24 +535,35 @@ def main() -> int:
     ap.add_argument("--altitude", type=int, required=True)
     ap.add_argument("--weather", required=True)
     ap.add_argument("--setting", required=True)
-    ap.add_argument("--method", required=True, choices=["window", "windows", "pieces", "chain"],
-                    help="window: one 93-frame window from --start; the others (whole clip) are experimental")
+    ap.add_argument("--method", required=True, choices=["window", "chain", "windows", "pieces"],
+                    help="window: one 93-frame window from --start; chain: --frames in one model run; "
+                         "windows and pieces (whole clip) are experimental")
     ap.add_argument("--start", type=int, default=0, help="with --method window: its first frame")
-    ap.add_argument("--piece-frames", type=int, default=185, help="with --method pieces: frames per independent piece")
     ap.add_argument("--frames", default=None, help="with --method chain: START:COUNT (default the whole clip)")
+    ap.add_argument("--piece-frames", type=int, default=185, help="with --method pieces: frames per independent piece")
+    ap.add_argument("--guide-video", default=None,
+                    help="with M2: a colour video of the same flight to guide the colours, instead of the render's rgb.mp4")
+    ap.add_argument("--guide-poses", default=None,
+                    help="camera_poses.json (or a camera/ folder) of the guide video, checked against the render's")
+    ap.add_argument("--specs-only", default=None, metavar="OUT",
+                    help="write the controls, spec, prompt and clip.json into OUT and do not run the model")
     ap.add_argument("--config", default=None)
     a = ap.parse_args()
     cfg = load_gen_config(a.config)
     method = a.method
     b = bundle_dir(a.run_folder, a.altitude)
     print(f"{time.strftime('%F %T')} {scene_name(b)} {a.altitude} ft {a.weather} {a.setting}: method {method}", flush=True)
-    if method == "window":
-        return run_window(b, a.weather, a.setting, cfg, start=a.start)
+    if method in ("window", "chain"):
+        kw = {"frames": a.frames, "start": a.start, "guide": a.guide_video, "guide_poses": a.guide_poses}
+        if a.specs_only:
+            write_specs(b, a.weather, a.setting, cfg, method, Path(a.specs_only), **kw)
+            return 0
+        return run_request(b, a.weather, a.setting, cfg, method, **kw)
+    if a.guide_video or a.specs_only:
+        raise SystemExit("--guide-video and --specs-only are for --method window or chain")
     if method == "windows":
         return run_windows(b, a.weather, a.setting, cfg)
-    if method == "pieces":
-        return run_windows(b, a.weather, a.setting, cfg, piece=a.piece_frames)
-    return run_chain(b, a.weather, a.setting, cfg, frames=a.frames)
+    return run_windows(b, a.weather, a.setting, cfg, piece=a.piece_frames)
 
 
 if __name__ == "__main__":
