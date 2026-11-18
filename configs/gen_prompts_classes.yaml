@@ -1,33 +1,41 @@
 # The prompt of a chained clip (generate --method chain), built from what is in view over its
 # frames. The share of pixels of each group below is measured from the semantic frames; every
-# group above `min_share` adds its sentence, always with the same wording and in the order below,
-# after the opening. The weather paragraph from configs/gen_prompts_windows.yaml follows, in its
-# river version only when water is above `min_share`. No camera instructions; no rooftop water
-# tanks (the model paints them as open water).
-min_share: 0.03
+# group above its own `min_share` adds its sentence, always with the same wording and in the order
+# below, after the opening. Small things get lower thresholds: from the air a car covers far less
+# of the frame than a street, and a person less still. The weather paragraph from
+# configs/gen_prompts_windows.yaml follows, in its river version only when water is above its
+# threshold. No camera instructions; no rooftop water tanks (the model paints them as open water).
 opening: Real aerial drone footage looking down at an angle on a neighbourhood of New York City.
 classes:
   water:
     counts: [water]
+    min_share: 0.03
     sentence: Part of the frame is open river water, stretching away beside a stone seawall.
   road:
     counts: [road, road_marking, median, parking]
+    min_share: 0.03
     sentence: Streets of dark grey asphalt carry white lane lines and white striped crosswalks.
   sidewalk_or_plaza:
     counts: [sidewalk, plaza, ground, path, pier, boardwalk]
+    min_share: 0.03
     sentence: Pale concrete sidewalks and paved plazas of grey stone run beside the streets, flat, clean and dry.
   lawn:
     counts: [lawn, park]
+    min_share: 0.01
     sentence: Small parks have green lawns.
   trees:
     counts: [vegetation]
+    min_share: 0.03
     sentence: Leafy green tree canopies line the streets and fill the parks.
   buildings:
     counts: [building]
+    min_share: 0.03
     sentence: Brick, stone and glass buildings with regular rows of rectangular windows stand along the streets, with flat grey rooftops carrying vents and mechanical equipment.
   vehicles:
     counts: [vehicle]
+    min_share: 0.003
     sentence: Cars, yellow taxis and vans drive along the streets and are parked along the kerbs.
   people:
     counts: [person]
+    min_share: 0.0005
     sentence: Pedestrians walk on the sidewalks and across the plazas.

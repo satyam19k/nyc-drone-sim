@@ -1,7 +1,7 @@
 """The prompt of a chained clip, from what is in view over its frames. Needs only NumPy and PyYAML.
 
 The share of every class over the frames is measured from the bundle's semantic frames;
-configs/gen_prompts_classes.yaml turns each group of classes above its threshold into a fixed
+configs/gen_prompts_classes.yaml turns each group of classes above its own threshold into a fixed
 sentence, so the same view always gets the same words, at any address. The weather paragraph of
 configs/gen_prompts_windows.yaml follows, in its river version only when water is in view.
 """
@@ -41,10 +41,9 @@ def group_shares(shares: dict[str, float], pc: dict) -> dict[str, float]:
 
 
 def class_prompt(shares: dict[str, float], weather: str, pc: dict, wp: dict) -> tuple[str, list[str]]:
-    """(prompt, groups described): the opening, one fixed sentence per group above the threshold,
+    """(prompt, groups described): the opening, one fixed sentence per group above its threshold,
     then the weather paragraph."""
-    lo = float(pc["min_share"])
-    groups = [g for g, s in group_shares(shares, pc).items() if s > lo]
+    groups = [g for g, s in group_shares(shares, pc).items() if s > float(pc["classes"][g]["min_share"])]
     key = "with_water" if "water" in groups else "without_water"
     words = [pc["opening"], *(pc["classes"][g]["sentence"] for g in groups), wp["weather"][weather][key]]
     text = " ".join(" ".join(w.split()) for w in words)
